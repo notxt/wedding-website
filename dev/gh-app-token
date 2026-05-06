@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Print a fresh GitHub App installation access token to stdout.
+#
+# Required env:
+#   GH_APP_ID
+#   GH_APP_INSTALL_ID
+#   GH_APP_KEY_FILE  (path to the App's RSA private key, .pem)
+set -euo pipefail
+
+: "${GH_APP_ID:?GH_APP_ID is required}"
+: "${GH_APP_INSTALL_ID:?GH_APP_INSTALL_ID is required}"
+: "${GH_APP_KEY_FILE:?GH_APP_KEY_FILE is required}"
+
+if [ ! -r "$GH_APP_KEY_FILE" ]; then
+  echo "gh-app-token: cannot read key file: $GH_APP_KEY_FILE" >&2
+  exit 1
+fi
+
+b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+
+now=$(date +%s)
+iat=$((now - 60))
+exp=$((now + 540))
+
+header_b64=$(printf '{"alg":"RS256","typ":"JWT"}' | b64url)
+payload_b64=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' "$iat" "$exp" "$GH_APP_ID" | b64url)
+signing_input="${header_b64}.${payload_b64}"
+signature_b64=$(printf '%s' "$signing_input" | openssl dgst -binary -sha256 -sign "$GH_APP_KEY_FILE" | b64url)
+jwt="${signing_input}.${signature_b64}"
+
+response=$(curl -fsS -X POST \
+  -H "Authorization: Bearer ${jwt}" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/app/installations/${GH_APP_INSTALL_ID}/access_tokens")
+
+token=$(printf '%s' "$response" | jq -r '.token')
+if [ -z "$token" ] || [ "$token" = "null" ]; then
+  echo "gh-app-token: failed to obtain token; response: $response" >&2
+  exit 1
+fi
+
+printf '%s\n' "$token"

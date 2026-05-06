@@ -1,4 +1,4 @@
-# 005 — FAQs page
+# 006 — FAQs page
 
 ## Why
 Wire up the FAQs route with the verbatim copy from the copy doc.
@@ -7,7 +7,7 @@ Wire up the FAQs route with the verbatim copy from the copy doc.
 - [ ] `internal/templates/faqs.html` extends layout, contains all questions and answers verbatim from `context/M+A website copy doc.pdf`
 - [ ] `GET /faqs` returns 200 and renders the page
 - [ ] Nav highlights the active page (basic — can be a CSS class set from template data)
-- [ ] `_tasks/005-public-pages-faqs.md` deleted in the merging PR
+- [ ] `_tasks/006-public-pages-faqs.md` deleted in the merging PR
 
 ## Notes
 Q/As to include (copy verbatim from page 1–2 of the copy doc):

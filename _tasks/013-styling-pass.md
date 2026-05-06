@@ -1,4 +1,4 @@
-# 012 — Styling pass
+# 013 — Styling pass
 
 ## Why
 Site has been functional through tasks 002–011. Time for it to actually look like a wedding website that matches the invite aesthetic.
@@ -12,7 +12,7 @@ Site has been functional through tasks 002–011. Time for it to actually look l
 - [ ] Forms are usable on mobile (44px+ tap targets, sensible input sizing)
 - [ ] Focus styles visible for keyboard nav
 - [ ] No CSS framework, no build step
-- [ ] `_tasks/012-styling-pass.md` deleted in the merging PR
+- [ ] `_tasks/013-styling-pass.md` deleted in the merging PR
 
 ## Notes
 - Don't redesign the layout — keep semantic HTML from prior tasks; add CSS only.
