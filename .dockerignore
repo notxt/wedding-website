@@ -1,0 +1,8 @@
+.git
+.github
+_tasks
+context
+*.md
+!dev/**
+.env
+.DS_Store

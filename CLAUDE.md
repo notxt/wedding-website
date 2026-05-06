@@ -60,13 +60,43 @@ Front-end has no build step: plain HTML, plain CSS, no JS framework. Add JS only
 
 ## Local development
 
+The recommended workflow is the **dev container** (see below). Direct host runs still work for poking around:
+
 ```bash
 cp .env.example .env       # first time only
-docker compose up -d       # starts Postgres
 go run ./cmd/server        # starts the web server on $PORT (default 8080)
 ```
 
 Required environment variables are listed in `.env.example`. Sane dev defaults are baked in for `ACCESS_CODE` and `SESSION_SECRET` so the server runs without a `.env` — but they MUST be overridden in any non-local environment.
+
+## Dev container
+
+A containerized dev environment lives in `dev/`. Run inside it instead of installing Go / AWS CLI / `gh` / Claude Code on the host. It also makes `claude --dangerously-skip-permissions` safe by isolating the filesystem.
+
+**Run it:**
+
+```bash
+docker compose -f dev/compose.yml run --rm dev
+```
+
+This drops you into a bash shell at `/workspace` (the repo, bind-mounted), with a sibling `postgres` service reachable at `postgres:5432`.
+
+**AWS credentials** are passed through from the host shell via env vars (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_REGION`, `AWS_DEFAULT_REGION`, `AWS_PROFILE`). Tip — to materialize a profile into env vars:
+
+```bash
+eval "$(aws configure export-credentials --profile <name> --format env)"
+```
+
+**GitHub App key** is mounted read-only from `${CLAUDE_GH_APP_DIR:-../claude_gh_app}` (relative to the repo root). The container fetches a fresh installation token on every `git push` via a credential helper — no token wrangling needed.
+
+**Container detection:** `WEDDING_DEV_CONTAINER=1` is set inside the container. Scripts can branch on it: `[ -n "${WEDDING_DEV_CONTAINER:-}" ]`.
+
+**Trust boundary:** the only host paths visible inside the container are:
+- the repo (read-write — Claude needs to edit it)
+- `~/.claude` (read-write — preserves your Claude Code login + settings)
+- the GH App key dir (read-only)
+
+No docker socket. No host network. Runs as a non-root `dev` user. This is the boundary that makes `--dangerously-skip-permissions` acceptable.
 
 ## Style
 
@@ -78,6 +108,6 @@ Required environment variables are listed in `.env.example`. Sane dev defaults a
 
 ## Out of scope (until called for)
 
-- AWS infra / deployment (separate phase, see `_tasks/014-aws-cfn-infra.md`)
+- AWS infra / deployment (separate phase, see `_tasks/015-aws-cfn-infra.md`)
 - Custom domain, email notifications, photo gallery
 - Per-guest accounts (the access-code gate is intentionally a single shared code)

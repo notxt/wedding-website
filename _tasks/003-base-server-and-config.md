@@ -1,4 +1,4 @@
-# 002 — Base server and config
+# 003 — Base server and config
 
 ## Why
 Stand up the smallest runnable Go web server so every later task has somewhere to plug in. No business logic yet — just process bones.
@@ -10,9 +10,9 @@ Stand up the smallest runnable Go web server so every later task has somewhere t
 - [ ] `GET /healthz` returns `200 OK` with body `ok`
 - [ ] Graceful shutdown on SIGINT/SIGTERM with a 10s drain timeout
 - [ ] `go build ./...` and `go vet ./...` pass
-- [ ] `_tasks/002-base-server-and-config.md` deleted in the merging PR
+- [ ] `_tasks/003-base-server-and-config.md` deleted in the merging PR
 
 ## Notes
 - Use `net/http.ServeMux` (Go 1.22+ patterns). No router dependency.
 - Don't load `.env` from disk — `os.Getenv` only. Operators set the vars themselves.
-- Healthz must NOT depend on Postgres yet (DB is wired up in task 008).
+- Healthz must NOT depend on Postgres yet (DB is wired up in task 009).

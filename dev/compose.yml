@@ -1,0 +1,42 @@
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: dev/Dockerfile
+    image: wedding-website-dev:local
+    working_dir: /workspace
+    volumes:
+      - ../:/workspace
+      - ${HOME}/.claude:/home/dev/.claude
+      - ${CLAUDE_GH_APP_DIR:-../../claude_gh_app}:/run/secrets/gh:ro
+    environment:
+      WEDDING_DEV_CONTAINER: "1"
+      AWS_ACCESS_KEY_ID:
+      AWS_SECRET_ACCESS_KEY:
+      AWS_SESSION_TOKEN:
+      AWS_REGION:
+      AWS_DEFAULT_REGION:
+      AWS_PROFILE:
+      GH_APP_ID: "3590597"
+      GH_APP_INSTALL_ID: "129258904"
+      GH_APP_KEY_FILE: /run/secrets/gh/claude-notxt.2026-05-03.private-key.pem
+      DATABASE_URL: postgres://wedding:wedding@postgres:5432/wedding?sslmode=disable
+      ACCESS_CODE: letmein
+      SESSION_SECRET: dev-secret-do-not-use-in-prod
+    stdin_open: true
+    tty: true
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: wedding
+      POSTGRES_PASSWORD: wedding
+      POSTGRES_DB: wedding
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  pgdata:

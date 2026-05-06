@@ -94,13 +94,13 @@ wedding-website/
 ├── README.md
 ├── .env.example
 ├── .gitignore
-├── docker-compose.yml          # added in task 008
+├── dev/                        # dev container (Dockerfile, compose, scripts) — task 002
 ├── go.mod
 ├── go.sum                      # appears once we add pgx
 ├── _tasks/                     # numbered task files; deleted on PR merge
 ├── context/                    # original assets (invite SVG, envelope SVG, copy doc)
 ├── cmd/
-│   └── server/main.go          # added in task 002
+│   └── server/main.go          # added in task 003
 ├── internal/
 │   ├── config/                 # env var loading
 │   ├── handlers/               # one file per route group
@@ -117,7 +117,7 @@ wedding-website/
 
 ## Out of scope (for now)
 
-- AWS infrastructure (separate phase — task 014)
+- AWS infrastructure (separate phase — task 015)
 - Custom domain, TLS termination
 - Email notifications on RSVP submit
 - Photo gallery, the proposal page (copy doc marks these as TBD)

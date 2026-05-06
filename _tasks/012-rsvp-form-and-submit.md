@@ -1,4 +1,4 @@
-# 011 — RSVP form and submit
+# 012 — RSVP form and submit
 
 ## Why
 Wire up the actual RSVP form (gated by 010) and the POST handler that persists it via the store from 009.
@@ -18,7 +18,7 @@ Wire up the actual RSVP form (gated by 010) and the POST handler that persists i
 - [ ] If `attending=false`, meal/allergy fields are ignored (set to nil/false in the row)
 - [ ] `remote_addr` populated from `r.RemoteAddr` (or `X-Forwarded-For` first hop if set)
 - [ ] Conditional showing of meal-preference fields can be CSS-only (`:has()`) or progressive — no JS required to submit a valid form
-- [ ] `_tasks/011-rsvp-form-and-submit.md` deleted in the merging PR
+- [ ] `_tasks/012-rsvp-form-and-submit.md` deleted in the merging PR
 
 ## Notes
 - Keep validation in a small `validate(form url.Values) (RSVP, errs)` helper — testable without HTTP.
