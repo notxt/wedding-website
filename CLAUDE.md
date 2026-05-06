@@ -19,6 +19,7 @@ All planned work lives in `_tasks/NNN-<slug>.md`. Each file is one PR-sized unit
 1. **One task at a time, in numeric order.** Do not start task N+1 until task N's PR is merged into `main`. No parallel branches, no stacked PRs.
 2. **One task = one PR.** PR title matches the task title. Branch name matches the task slug (e.g. `002-base-server-and-config`).
 3. **Delete the task file in the same PR that completes it.** The merge that ships the work also removes its task file from `_tasks/`.
+4. **Keep PRs under 20 files when at all possible.** If a task naturally exceeds that, split it before starting: add an interleaved task file (e.g. `008a-...`, `008b-...`) and re-number anything downstream so the order is still strict. Better to split work than to ship a sprawling PR.
 
 **Picking up work (e.g., after a context reset):**
 
