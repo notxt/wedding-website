@@ -17,6 +17,7 @@ Architecture and design reference for the wedding website. Process and conventio
 | Prod DB        | Amazon RDS Postgres (later phase)                               |
 | Migrations     | Plain `.sql` files in `migrations/`, applied idempotently on server start |
 | Frontend       | Plain HTML + plain CSS, no JS framework, no build step          |
+| Fonts          | Playfair Display (headings) + Playfair (body), self-hosted woff2 |
 | Deployment     | CloudFormation → ECS Fargate (or App Runner) + RDS (later phase)|
 
 ## Routes

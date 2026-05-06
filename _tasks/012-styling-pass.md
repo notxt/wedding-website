@@ -6,7 +6,7 @@ Site has been functional through tasks 002–011. Time for it to actually look l
 ## Acceptance criteria
 - [ ] `static/css/main.css` linked from `layout.html`
 - [ ] Visual direction matches the invite SVG: dark charcoal background (`#231f20`), white serif type, generous letter-spacing on display headings
-- [ ] Web font: choose a public-domain or Google-Fonts serif that approximates the invite (e.g. Cormorant Garamond, EB Garamond, or system serif fallback). Self-host if Google Fonts; document choice in `SPEC.md`.
+- [ ] Web fonts: **Playfair Display** for headings/display, **Playfair** for body text. Both via Google Fonts (`https://fonts.google.com/specimen/Playfair+Display`, `https://fonts.google.com/specimen/Playfair`). Self-host the woff2 files under `static/fonts/` rather than using a `<link>` to fonts.googleapis.com — keeps the site self-contained and avoids the third-party request.
 - [ ] Mobile-first responsive: looks good at 375px wide and at 1280px+
 - [ ] Nav becomes a hamburger / stacked menu under ~640px
 - [ ] Forms are usable on mobile (44px+ tap targets, sensible input sizing)
