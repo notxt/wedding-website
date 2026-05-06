@@ -1,0 +1,18 @@
+# Local env
+.env
+
+# macOS
+.DS_Store
+
+# Go build output
+/bin/
+/server
+*.test
+*.out
+
+# IDE
+.idea/
+.vscode/
+
+# Coverage
+coverage.txt
