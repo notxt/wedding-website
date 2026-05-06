@@ -23,6 +23,8 @@ services:
       DATABASE_URL: postgres://wedding:wedding@postgres:5432/wedding?sslmode=disable
       ACCESS_CODE: letmein
       SESSION_SECRET: dev-secret-do-not-use-in-prod
+    ports:
+      - "8080:8080"
     stdin_open: true
     tty: true
     depends_on:
