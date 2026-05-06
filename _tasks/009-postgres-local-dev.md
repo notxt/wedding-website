@@ -1,7 +1,7 @@
 # 009 — Postgres migrations and DB wiring
 
 ## Why
-Wire Postgres into the server and apply schema migrations on startup. Storage is required before the RSVP store (010) and form (012). The Postgres service itself already exists at `dev/compose.yml` (added in task 002), so this task is about the application-side integration.
+Wire Postgres into the server and apply schema migrations on startup. Storage is required before the RSVP store (010) and form (012). The Postgres service itself already exists at `compose.yml` (added in task 002), so this task is about the application-side integration.
 
 ## Acceptance criteria
 - [ ] `migrations/001_init.sql` creates the `rsvps` table per the schema in `SPEC.md` (uses `CREATE TABLE IF NOT EXISTS` so it's idempotent)

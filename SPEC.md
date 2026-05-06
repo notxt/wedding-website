@@ -13,7 +13,7 @@ Architecture and design reference for the wedding website. Process and conventio
 | Sessions       | Signed cookies via `crypto/hmac` + `crypto/sha256` (stdlib)     |
 | Static assets  | `embed.FS` served via `http.FileServer`                         |
 | DB driver      | `github.com/jackc/pgx/v5` (only sanctioned external dep)        |
-| Local DB       | Postgres 16 via `docker-compose.yml`                            |
+| Local DB       | Postgres 16 via `compose.yml` (sibling of the dev container)    |
 | Prod DB        | Amazon RDS Postgres (later phase)                               |
 | Migrations     | Plain `.sql` files in `migrations/`, applied idempotently on server start |
 | Frontend       | Plain HTML + plain CSS, no JS framework, no build step          |
@@ -94,7 +94,8 @@ wedding-website/
 ├── README.md
 ├── .env.example
 ├── .gitignore
-├── dev/                        # dev container (Dockerfile, compose, scripts) — task 002
+├── compose.yml                 # dev + postgres services — task 002
+├── dev/                        # dev container Dockerfile + scripts — task 002
 ├── go.mod
 ├── go.sum                      # appears once we add pgx
 ├── _tasks/                     # numbered task files; deleted on PR merge

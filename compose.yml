@@ -1,14 +1,14 @@
 services:
   dev:
     build:
-      context: ..
+      context: .
       dockerfile: dev/Dockerfile
     image: wedding-website-dev:local
     working_dir: /workspace
     volumes:
-      - ../:/workspace
+      - ./:/workspace
       - ${HOME}/.claude:/home/dev/.claude
-      - ${CLAUDE_GH_APP_DIR:-../../claude_gh_app}:/run/secrets/gh:ro
+      - ${CLAUDE_GH_APP_DIR:-../claude_gh_app}:/run/secrets/gh:ro
     environment:
       WEDDING_DEV_CONTAINER: "1"
       AWS_ACCESS_KEY_ID:

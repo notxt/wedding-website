@@ -9,7 +9,7 @@ A Go MPA. Most pages public; RSVP gated behind a shared access code.
 Recommended: use the dev container.
 
 ```bash
-docker compose -f dev/compose.yml run --rm dev
+docker compose run --rm dev
 # inside the container:
 go run ./cmd/server
 ```
@@ -20,7 +20,7 @@ Direct host run also works once the container's `postgres` service is up:
 
 ```bash
 cp .env.example .env
-docker compose -f dev/compose.yml up -d postgres
+docker compose up -d postgres
 go run ./cmd/server
 ```
 

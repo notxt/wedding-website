@@ -76,7 +76,7 @@ A containerized dev environment lives in `dev/`. Run inside it instead of instal
 **Run it:**
 
 ```bash
-docker compose -f dev/compose.yml run --rm dev
+docker compose run --rm dev
 ```
 
 This drops you into a bash shell at `/workspace` (the repo, bind-mounted), with a sibling `postgres` service reachable at `postgres:5432`.
