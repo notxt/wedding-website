@@ -44,6 +44,10 @@ func main() {
 	mux.Handle("GET /static/", staticHandler)
 	mux.HandleFunc("GET /{$}", handlers.Home(tmpls))
 	mux.HandleFunc("GET /faqs", handlers.FAQs(tmpls))
+	mux.HandleFunc("GET /information", handlers.Page(tmpls, "information.html"))
+	mux.HandleFunc("GET /information/itinerary", handlers.Page(tmpls, "information-itinerary.html"))
+	mux.HandleFunc("GET /information/travel", handlers.Page(tmpls, "information-travel.html"))
+	mux.HandleFunc("GET /information/things-to-do", handlers.Page(tmpls, "information-things-to-do.html"))
 
 	addr := net.JoinHostPort("", cfg.Port)
 	srv := &http.Server{

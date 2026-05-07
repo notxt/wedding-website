@@ -22,7 +22,14 @@ type pageView struct {
 }
 
 func Load() (*Set, error) {
-	pageNames := []string{"home.html", "faqs.html"}
+	pageNames := []string{
+		"home.html",
+		"faqs.html",
+		"information.html",
+		"information-itinerary.html",
+		"information-travel.html",
+		"information-things-to-do.html",
+	}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
 		t, err := template.ParseFS(files, "layout.html", name)
