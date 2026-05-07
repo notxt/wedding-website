@@ -11,9 +11,11 @@ import (
 	"syscall"
 	"time"
 
+	wedding "github.com/notxt/wedding-website"
 	"github.com/notxt/wedding-website/internal/config"
 	"github.com/notxt/wedding-website/internal/handlers"
 	"github.com/notxt/wedding-website/internal/static"
+	"github.com/notxt/wedding-website/internal/store"
 	"github.com/notxt/wedding-website/internal/templates"
 )
 
@@ -35,8 +37,32 @@ func main() {
 		os.Exit(1)
 	}
 
+	startupCtx, cancelStartup := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelStartup()
+
+	st, err := store.Open(startupCtx, cfg.DatabaseURL)
+	if err != nil {
+		logger.Error("db open failed", "err", err)
+		os.Exit(1)
+	}
+	defer st.Close()
+
+	if err := st.Migrate(startupCtx, wedding.Migrations, "migrations"); err != nil {
+		logger.Error("migrations failed", "err", err)
+		os.Exit(1)
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := st.Ping(ctx); err != nil {
+			slog.Error("healthz db ping failed", "err", err)
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("db unavailable"))
+			return
+		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
