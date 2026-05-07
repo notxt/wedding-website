@@ -33,6 +33,8 @@ func Load() (*Set, error) {
 		"contact-about-us.html",
 		"contact-registry.html",
 		"contact-get-in-touch.html",
+		"rsvp.html",
+		"rsvp-auth.html",
 	}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {

@@ -1,0 +1,11 @@
+{{ define "title" }}RSVP &middot; Michael &amp; Adrien{{ end }}
+{{ define "content" }}
+<h1>RSVP</h1>
+<p>This section is private. Please enter the access code from your invitation to continue.</p>
+{{ with .Data }}{{ if .Error }}<p role="alert">{{ .Error }}</p>{{ end }}{{ end }}
+<form method="post" action="/rsvp/auth">
+<label for="code">Access code</label>
+<input type="text" id="code" name="code" autocomplete="off" autocapitalize="none" spellcheck="false" required>
+<button type="submit">Continue</button>
+</form>
+{{ end }}
