@@ -48,6 +48,10 @@ func main() {
 	mux.HandleFunc("GET /information/itinerary", handlers.Page(tmpls, "information-itinerary.html"))
 	mux.HandleFunc("GET /information/travel", handlers.Page(tmpls, "information-travel.html"))
 	mux.HandleFunc("GET /information/things-to-do", handlers.Page(tmpls, "information-things-to-do.html"))
+	mux.HandleFunc("GET /contact", handlers.Page(tmpls, "contact.html"))
+	mux.HandleFunc("GET /contact/about-us", handlers.Page(tmpls, "contact-about-us.html"))
+	mux.HandleFunc("GET /contact/registry", handlers.Page(tmpls, "contact-registry.html"))
+	mux.HandleFunc("GET /contact/get-in-touch", handlers.Page(tmpls, "contact-get-in-touch.html"))
 
 	addr := net.JoinHostPort("", cfg.Port)
 	srv := &http.Server{
