@@ -16,8 +16,13 @@ type Set struct {
 	pages map[string]*template.Template
 }
 
+type pageView struct {
+	Active string
+	Data   any
+}
+
 func Load() (*Set, error) {
-	pageNames := []string{"home.html"}
+	pageNames := []string{"home.html", "faqs.html"}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
 		t, err := template.ParseFS(files, "layout.html", name)
@@ -36,8 +41,9 @@ func (s *Set) Render(w http.ResponseWriter, r *http.Request, name string, data a
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
+	view := pageView{Active: r.URL.Path, Data: data}
 	var buf bytes.Buffer
-	if err := t.ExecuteTemplate(&buf, "layout.html", data); err != nil {
+	if err := t.ExecuteTemplate(&buf, "layout.html", view); err != nil {
 		slog.Error("template execute failed", "name", name, "path", r.URL.Path, "err", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
