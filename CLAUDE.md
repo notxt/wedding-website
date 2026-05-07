@@ -93,7 +93,7 @@ eval "$(aws configure export-credentials --profile <name> --format env)"
 
 **Trust boundary:** the only host paths visible inside the container are:
 - the repo (read-write — Claude needs to edit it)
-- `~/.claude` (read-write — preserves your Claude Code login + settings)
+- `~/.claude` and `~/.claude.json` (read-write — preserves your Claude Code login + settings)
 - the GH App key dir (read-only)
 
 No docker socket. No host network. Runs as a non-root `dev` user. This is the boundary that makes `--dangerously-skip-permissions` acceptable.
