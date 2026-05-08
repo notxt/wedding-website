@@ -149,19 +149,6 @@ main svg {
   margin: 2rem auto;
 }
 
-.hero-monogram {
-  display: block;
-  margin: 1rem auto 1.75rem;
-  width: 100%;
-  max-width: 28rem;
-  height: auto;
-}
-
-.hero-monogram .cls-2,
-.hero-monogram path {
-  fill: var(--ink);
-}
-
 .visually-hidden {
   position: absolute;
   width: 1px;
