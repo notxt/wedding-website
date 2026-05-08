@@ -14,6 +14,7 @@ import (
 	wedding "github.com/notxt/wedding-website"
 	"github.com/notxt/wedding-website/internal/config"
 	"github.com/notxt/wedding-website/internal/handlers"
+	"github.com/notxt/wedding-website/internal/middleware"
 	"github.com/notxt/wedding-website/internal/session"
 	"github.com/notxt/wedding-website/internal/static"
 	"github.com/notxt/wedding-website/internal/store"
@@ -81,8 +82,11 @@ func main() {
 	mux.HandleFunc("GET /contact/get-in-touch", handlers.Page(tmpls, "contact-get-in-touch.html"))
 
 	signer := session.New(cfg.SessionSecret)
+	authMW := &middleware.Auth{Signer: signer}
 	mux.HandleFunc("GET /rsvp", handlers.RSVP(tmpls, signer))
 	mux.HandleFunc("POST /rsvp/auth", handlers.RSVPAuthSubmit(tmpls, signer, cfg.AccessCode))
+	mux.Handle("POST /rsvp", authMW.RequireRSVPAuth(handlers.RSVPSubmit(tmpls, st)))
+	mux.Handle("GET /rsvp/thanks", authMW.RequireRSVPAuth(handlers.RSVPThanks(tmpls)))
 
 	addr := net.JoinHostPort("", cfg.Port)
 	srv := &http.Server{

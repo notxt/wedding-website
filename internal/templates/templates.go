@@ -35,6 +35,7 @@ func Load() (*Set, error) {
 		"contact-get-in-touch.html",
 		"rsvp.html",
 		"rsvp-auth.html",
+		"rsvp-thanks.html",
 	}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
