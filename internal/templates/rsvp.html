@@ -1,5 +1,52 @@
 {{ define "title" }}RSVP &middot; Michael &amp; Adrien{{ end }}
 {{ define "content" }}
+{{ with .Data }}
+<style>
+.rsvp-meal { display: none; }
+form.rsvp:has(input[name="attending"][value="yes"]:checked) .rsvp-meal { display: block; }
+</style>
 <h1>RSVP</h1>
-<p>RSVP form goes here.</p>
+<p>Please respond by August 1, 2026. If your party includes more than one person, fill in everyone's name below — one form per party is enough.</p>
+
+<form class="rsvp" method="post" action="/rsvp" novalidate>
+<fieldset>
+<legend>Will you be attending?</legend>
+<label><input type="radio" name="attending" value="yes" {{ if eq .Attending "yes" }}checked{{ end }} required> Yes, we'll be there</label>
+<label><input type="radio" name="attending" value="no" {{ if eq .Attending "no" }}checked{{ end }}> No, we can't make it</label>
+{{ with index .Errors "attending" }}<p role="alert">{{ . }}</p>{{ end }}
+</fieldset>
+
+<label>
+Names of party
+<textarea name="party_names" required>{{ .PartyNames }}</textarea>
+</label>
+{{ with index .Errors "party_names" }}<p role="alert">{{ . }}</p>{{ end }}
+
+<fieldset class="rsvp-meal">
+<legend>Meal preference</legend>
+<label><input type="radio" name="meal_choice" value="chicken" {{ if eq .MealChoice "chicken" }}checked{{ end }}> Chicken</label>
+<label><input type="radio" name="meal_choice" value="vegetarian" {{ if eq .MealChoice "vegetarian" }}checked{{ end }}> Vegetarian</label>
+{{ with index .Errors "meal_choice" }}<p role="alert">{{ . }}</p>{{ end }}
+</fieldset>
+
+<fieldset>
+<legend>Dairy allergy?</legend>
+<label><input type="radio" name="dairy_allergy" value="yes" {{ if eq .DairyAllergy "yes" }}checked{{ end }}> Yes</label>
+<label><input type="radio" name="dairy_allergy" value="no" {{ if or (eq .DairyAllergy "no") (eq .DairyAllergy "") }}checked{{ end }}> No</label>
+</fieldset>
+
+<fieldset>
+<legend>Gluten allergy?</legend>
+<label><input type="radio" name="gluten_allergy" value="yes" {{ if eq .GlutenAllergy "yes" }}checked{{ end }}> Yes</label>
+<label><input type="radio" name="gluten_allergy" value="no" {{ if or (eq .GlutenAllergy "no") (eq .GlutenAllergy "") }}checked{{ end }}> No</label>
+</fieldset>
+
+<label>
+Other allergies (optional)
+<textarea name="other_allergies">{{ .OtherAllergies }}</textarea>
+</label>
+
+<button type="submit">Submit RSVP</button>
+</form>
+{{ end }}
 {{ end }}
