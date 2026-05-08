@@ -149,17 +149,29 @@ main svg {
   margin: 2rem auto;
 }
 
-.invitation {
-  max-width: 22rem;
+.hero-monogram {
+  display: block;
+  margin: 1rem auto 1.75rem;
   width: 100%;
+  max-width: 28rem;
+  height: auto;
 }
 
-.invitation .cls-1 {
-  fill: var(--paper);
-}
-
-.invitation .cls-2 {
+.hero-monogram .cls-2,
+.hero-monogram path {
   fill: var(--ink);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 header {
