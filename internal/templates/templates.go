@@ -37,9 +37,10 @@ func Load() (*Set, error) {
 		"rsvp-auth.html",
 		"rsvp-thanks.html",
 	}
+	partials := []string{"layout.html", "home-hero.html"}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
-		t, err := template.ParseFS(files, "layout.html", name)
+		t, err := template.ParseFS(files, append(partials, name)...)
 		if err != nil {
 			return nil, fmt.Errorf("parse %s: %w", name, err)
 		}
