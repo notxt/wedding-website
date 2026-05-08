@@ -14,6 +14,7 @@ import (
 	wedding "github.com/notxt/wedding-website"
 	"github.com/notxt/wedding-website/internal/config"
 	"github.com/notxt/wedding-website/internal/handlers"
+	"github.com/notxt/wedding-website/internal/session"
 	"github.com/notxt/wedding-website/internal/static"
 	"github.com/notxt/wedding-website/internal/store"
 	"github.com/notxt/wedding-website/internal/templates"
@@ -78,6 +79,10 @@ func main() {
 	mux.HandleFunc("GET /contact/about-us", handlers.Page(tmpls, "contact-about-us.html"))
 	mux.HandleFunc("GET /contact/registry", handlers.Page(tmpls, "contact-registry.html"))
 	mux.HandleFunc("GET /contact/get-in-touch", handlers.Page(tmpls, "contact-get-in-touch.html"))
+
+	signer := session.New(cfg.SessionSecret)
+	mux.HandleFunc("GET /rsvp", handlers.RSVP(tmpls, signer))
+	mux.HandleFunc("POST /rsvp/auth", handlers.RSVPAuthSubmit(tmpls, signer, cfg.AccessCode))
 
 	addr := net.JoinHostPort("", cfg.Port)
 	srv := &http.Server{
