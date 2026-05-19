@@ -1,0 +1,18 @@
+{{ define "home-hero-moon" }}
+<svg class="heroE-moon" viewBox="-200 -200 400 400" aria-hidden="true">
+<defs>
+<radialGradient id="hE-moon-halo" cx="50%" cy="50%" r="50%">
+<stop offset="0%" stop-color="#e8d3a8" stop-opacity="0.22"/>
+<stop offset="55%" stop-color="#c8a878" stop-opacity="0.06"/>
+<stop offset="100%" stop-color="#c8a878" stop-opacity="0"/>
+</radialGradient>
+<mask id="hE-moon-mask">
+<rect x="-200" y="-200" width="400" height="400" fill="black"/>
+<circle cx="0" cy="0" r="150" fill="white"/>
+<circle cx="55" cy="-20" r="138" fill="black"/>
+</mask>
+</defs>
+<circle cx="0" cy="0" r="190" fill="url(#hE-moon-halo)"/>
+<rect x="-200" y="-200" width="400" height="400" fill="#d8c39a" opacity="0.85" mask="url(#hE-moon-mask)"/>
+</svg>
+{{ end }}
