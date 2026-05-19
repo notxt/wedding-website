@@ -1,0 +1,41 @@
+{{ define "home-hero-sky" }}
+<svg class="heroE-skyfx" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+<defs>
+<radialGradient id="hE-neb-rust" cx="50%" cy="50%" r="50%">
+<stop offset="0%" stop-color="#7a2418" stop-opacity="0.22"/>
+<stop offset="55%" stop-color="#3a0e22" stop-opacity="0.08"/>
+<stop offset="100%" stop-color="#3a0e22" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="hE-neb-violet" cx="50%" cy="50%" r="50%">
+<stop offset="0%" stop-color="#3d1e6e" stop-opacity="0.32"/>
+<stop offset="100%" stop-color="#3d1e6e" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="hE-neb-blue" cx="50%" cy="50%" r="50%">
+<stop offset="0%" stop-color="#162a6e" stop-opacity="0.30"/>
+<stop offset="100%" stop-color="#162a6e" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="hE-milky" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#cbb89a" stop-opacity="0"/>
+<stop offset="45%" stop-color="#cbb89a" stop-opacity="0.04"/>
+<stop offset="60%" stop-color="#9a7fb8" stop-opacity="0.05"/>
+<stop offset="100%" stop-color="#cbb89a" stop-opacity="0"/>
+</linearGradient>
+<filter id="hE-soft" x="-20%" y="-20%" width="140%" height="140%">
+<feGaussianBlur stdDeviation="14"/>
+</filter>
+</defs>
+<ellipse cx="980" cy="540" rx="640" ry="380" fill="url(#hE-neb-rust)"/>
+<ellipse cx="320" cy="420" rx="540" ry="360" fill="url(#hE-neb-violet)"/>
+<ellipse cx="700" cy="220" rx="520" ry="260" fill="url(#hE-neb-blue)"/>
+<g filter="url(#hE-soft)" opacity="0.85">
+<path d="M -100,800 L 1500,80 L 1500,180 L -100,900 Z" fill="url(#hE-milky)"/>
+</g>
+{{ .Data.Stars }}
+<g transform="translate(160, 470) rotate(-18)">
+<ellipse cx="0" cy="0" rx="74" ry="16" fill="none" stroke="#cbb89a" stroke-opacity="0.40" stroke-width="0.8"/>
+<ellipse cx="0" cy="0" rx="58" ry="12" fill="none" stroke="#cbb89a" stroke-opacity="0.20" stroke-width="0.5"/>
+<circle cx="0" cy="0" r="24" fill="#d6c39a" opacity="0.85"/>
+<circle cx="9" cy="-6" r="22" fill="#04040f" opacity="0.50"/>
+</g>
+</svg>
+{{ end }}

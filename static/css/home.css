@@ -1,0 +1,363 @@
+@font-face {
+  font-family: 'Playfair Display 900 Italic';
+  src: url('/static/fonts/playfair-display-900italic-latin.woff2') format('woff2');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* ======================================================================
+   Hero — Synthesis (E). White-on-black editorial typography sitting on a
+   night-sky → desert-horizon gradient, with quiet orbital motion above
+   and a layered Sangre de Cristo silhouette grounding the bottom.
+   ====================================================================== */
+
+.hNav {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 36px;
+  z-index: 8;
+  font-family: 'Playfair Display', Georgia, serif;
+}
+.hNav-mark {
+  display: block;
+  width: auto;
+  height: 64px;
+}
+.hNav-links {
+  display: flex; gap: 28px; align-items: center;
+}
+.hNav-links a {
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: inherit;
+  border: 0;
+  opacity: 0.7;
+  transition: opacity .2s;
+}
+.hNav-links a:hover { opacity: 1; }
+.hNav-rsvp {
+  border: 1px solid currentColor;
+  padding: 9px 16px;
+  border-radius: 999px;
+  opacity: 1 !important;
+}
+
+.heroE {
+  --hE-ink: #f4e8d0;
+  --hE-ink-dim: rgba(244, 232, 208, 0.62);
+  --hE-paper: #02030a;
+  position: relative;
+  min-height: 190vh;
+  overflow: hidden;
+  background: var(--hE-paper);
+  color: var(--hE-ink);
+  font-family: 'Playfair Display', Georgia, serif;
+  display: flex; flex-direction: column;
+}
+.heroE .hNav { color: var(--hE-ink); }
+
+.heroE-sky {
+  position: absolute; inset: 0; z-index: 0;
+  background: linear-gradient(
+    180deg,
+    #000003 0%,
+    #010108 22%,
+    #03030d 42%,
+    #060716 58%,
+    #0a081d 70%,
+    #1a0c28 80%,
+    #3a1428 88%,
+    #6b2a2a 94%,
+    #9c4828 100%
+  );
+}
+
+.heroE-skyfx {
+  position: absolute; inset: 0; z-index: 1;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+.heroE-mountain {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  width: 100%;
+  height: clamp(140px, 18vw, 240px);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.heroE-edge {
+  position: absolute;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 11px;
+  letter-spacing: 0.36em;
+  text-transform: uppercase;
+  color: var(--hE-ink);
+  opacity: 0.7;
+  z-index: 6;
+}
+.heroE-edge-tl { top: 90px; left: 36px; }
+.heroE-edge-tr { top: 90px; right: 36px; }
+.heroE-edge-rot {
+  top: 50%;
+  left: 18px;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: left center;
+  white-space: nowrap;
+  opacity: 0.55;
+}
+
+.heroE-stage {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  text-align: center;
+  padding: clamp(140px, 16vh, 200px) 40px clamp(120px, 14vh, 170px);
+  gap: clamp(48px, 8vh, 100px);
+}
+
+.heroE-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 1.6vw, 22px);
+  width: min(420px, 60%);
+  margin: clamp(20px, 4vh, 56px) auto;
+  opacity: 0.55;
+}
+.heroE-divider-rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg,
+    rgba(230, 213, 179, 0) 0%,
+    rgba(230, 213, 179, 0.6) 50%,
+    rgba(230, 213, 179, 0) 100%);
+}
+.heroE-divider-star {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.heroE-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.heroE-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.heroE-lockup-who { gap: 0; }
+
+.heroE-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.heroE-row-top { margin-bottom: -0.18em; }
+.heroE-row-bot { margin-top: -0.18em; }
+
+.heroE-word {
+  font-family: 'Playfair Display 900 Italic', 'Playfair Display', Georgia, serif;
+  font-weight: 900;
+  font-style: italic;
+  font-synthesis: none;
+  font-size: clamp(96px, 17vw, 280px);
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  display: inline-block;
+  text-align: center;
+}
+.heroE-word-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.6px var(--hE-ink);
+  text-shadow: 0 2px 32px rgba(0, 0, 0, 0.55);
+}
+.heroE-word-fill {
+  color: var(--hE-ink);
+  font-style: italic;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.55);
+}
+
+.heroE-row-mid {
+  margin: -0.36em 0;
+}
+.heroE-amp {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(120px, 15vw, 240px);
+  line-height: 1;
+  color: var(--hE-ink);
+  display: block;
+  margin: 0;
+  padding: 0 0.05em;
+  opacity: 0.92;
+}
+
+.heroE-zone-invite {
+  position: relative;
+}
+
+.heroE-divider-moon {
+  width: auto;
+  margin: clamp(20px, 4vh, 56px) auto;
+  opacity: 1;
+}
+.heroE-moon {
+  display: block;
+  width: clamp(200px, 26vw, 360px);
+  height: clamp(200px, 26vw, 360px);
+  pointer-events: none;
+}
+
+.heroE-zone-invite .heroE-mood {
+  position: relative;
+  z-index: 1;
+}
+
+.heroE-mood {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(13px, 1.15vw, 17px);
+  letter-spacing: 0.46em;
+  text-transform: uppercase;
+  color: var(--hE-ink);
+  opacity: 0.72;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-align: center;
+  display: block;
+  width: 100%;
+}
+
+.heroE-zone-when {
+  gap: 8px;
+}
+.heroE-when {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(6px, 1vh, 10px);
+  font-family: 'Playfair Display', Georgia, serif;
+  color: var(--hE-ink);
+}
+.heroE-when-day {
+  font-style: italic;
+  font-size: clamp(13px, 1.2vw, 17px);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+.heroE-when-date {
+  font-style: italic;
+  font-size: clamp(34px, 4.4vw, 60px);
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  opacity: 0.95;
+}
+.heroE-place {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(13px, 1.2vw, 17px);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--hE-ink);
+  opacity: 0.75;
+  margin-bottom: clamp(14px, 2vh, 22px);
+}
+
+.heroE-zone-schedule {
+  gap: 22px;
+}
+.heroE-schedule {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  gap: clamp(28px, 5vw, 80px);
+}
+.heroE-sched-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Playfair Display', Georgia, serif;
+  color: var(--hE-ink);
+  text-align: center;
+  min-width: 14ch;
+}
+.heroE-sched-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--hE-ink);
+  opacity: 0.28;
+}
+.heroE-sched-time {
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(28px, 3.4vw, 46px);
+  letter-spacing: 0.01em;
+  line-height: 1;
+  opacity: 0.96;
+}
+.heroE-sched-label {
+  font-style: italic;
+  font-size: clamp(12px, 1.05vw, 15px);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  opacity: 0.78;
+  margin-top: 2px;
+}
+.heroE-sched-detail {
+  font-style: normal;
+  font-size: clamp(10px, 0.92vw, 12px);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  opacity: 0.62;
+  line-height: 1.55;
+}
+
+.heroE-note {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(14px, 2vw, 26px);
+  transform: translateX(-50%);
+  z-index: 6;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(10px, 0.85vw, 12px);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--hE-ink);
+  opacity: 0.42;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (max-width: 720px) {
+  .heroE-stage { padding: 120px 18px 90px; gap: 60px; }
+  .heroE-edge-tl, .heroE-edge-tr { font-size: 9px; letter-spacing: 0.24em; }
+  .heroE-edge-rot { display: none; }
+  .heroE-mood { letter-spacing: 0.32em; white-space: normal; max-width: 28ch; margin: 0 auto; }
+  .heroE-when { flex-direction: column; gap: 10px; }
+  .heroE-schedule { flex-direction: column; gap: 24px; }
+  .heroE-sched-divider { width: 60px; height: 1px; align-self: center; }
+}

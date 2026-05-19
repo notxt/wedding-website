@@ -21,6 +21,8 @@ type pageView struct {
 	Data   any
 }
 
+var homeStars = renderStars()
+
 func Load() (*Set, error) {
 	pageNames := []string{
 		"home.html",
@@ -39,7 +41,13 @@ func Load() (*Set, error) {
 		"404.html",
 		"500.html",
 	}
-	partials := []string{"layout.html", "home-hero.html"}
+	partials := []string{
+		"layout.html",
+		"home-hero.html",
+		"home-hero-sky.html",
+		"home-hero-mountain.html",
+		"home-hero-moon.html",
+	}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
 		t, err := template.ParseFS(files, append(partials, name)...)
@@ -49,6 +57,10 @@ func Load() (*Set, error) {
 		pages[name] = t
 	}
 	return &Set{pages: pages}, nil
+}
+
+func (s *Set) HomeStars() template.HTML {
+	return homeStars
 }
 
 func (s *Set) Render(w http.ResponseWriter, r *http.Request, name string, data any) {

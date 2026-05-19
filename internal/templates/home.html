@@ -1,6 +1,97 @@
 {{ define "title" }}Michael &amp; Adrien — Wedding{{ end }}
-{{ define "content" }}
-{{ template "home-hero" }}
-<h1>Michael &amp; Adrien</h1>
-<p class="home-meta">Friday, September 25, 2026 &middot; Santa Fe, New Mexico</p>
+
+{{ define "head-extra" }}
+<link rel="preload" href="/static/fonts/playfair-display-900italic-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/css/home.css">
 {{ end }}
+
+{{ define "header" }}
+<header class="heroE">
+<div class="heroE-sky"></div>
+{{ template "home-hero-sky" . }}
+{{ template "home-hero-mountain" . }}
+
+<nav class="hNav">
+<a href="/" aria-label="Adrien &amp; Michael — home"><img class="hNav-mark" src="/static/img/ma-monogram.svg" alt="A &amp; M monogram"></a>
+<div class="hNav-links">
+<a href="/faqs">FAQs</a>
+<a href="/information/travel">Travel</a>
+<a href="/information/things-to-do">Things to Do</a>
+<a href="/contact/registry">Registry</a>
+<a class="hNav-rsvp" href="/rsvp">RSVP</a>
+</div>
+</nav>
+
+<span class="heroE-edge heroE-edge-tl">An invitation —</span>
+<span class="heroE-edge heroE-edge-tr">Santa Fe · New Mexico</span>
+<span class="heroE-edge heroE-edge-rot">Two · Thousand · Twenty-Six</span>
+
+<div class="heroE-stage">
+
+<div class="heroE-zone heroE-zone-intro">
+<span class="heroE-mood">Two stars aligning in the vastness of space</span>
+</div>
+
+<div class="heroE-zone heroE-zone-names">
+<div class="heroE-lockup heroE-lockup-who">
+<div class="heroE-row heroE-row-top">
+<span class="heroE-word heroE-word-outline">ADRIEN</span>
+</div>
+<div class="heroE-row heroE-row-mid">
+<span class="heroE-amp">&amp;</span>
+</div>
+<div class="heroE-row heroE-row-bot">
+<span class="heroE-word heroE-word-outline">MICHAEL</span>
+</div>
+</div>
+</div>
+
+<div class="heroE-divider heroE-divider-moon" aria-hidden="true">
+{{ template "home-hero-moon" . }}
+</div>
+
+<div class="heroE-zone heroE-zone-invite">
+<span class="heroE-mood">Join them under the high desert moon</span>
+</div>
+
+<div class="heroE-zone heroE-zone-when">
+<div class="heroE-when">
+<span class="heroE-when-day">Friday</span>
+<span class="heroE-when-date">September 25, 2026</span>
+</div>
+</div>
+
+<div class="heroE-divider" aria-hidden="true">
+<span class="heroE-divider-rule"></span>
+<svg class="heroE-divider-star" viewBox="-10 -10 20 20" width="12" height="12">
+<polygon points="0,-9 1.6,-1.6 9,0 1.6,1.6 0,9 -1.6,1.6 -9,0 -1.6,-1.6" fill="#e6d5b3"/>
+</svg>
+<span class="heroE-divider-rule"></span>
+</div>
+
+<div class="heroE-zone heroE-zone-schedule">
+<div class="heroE-place">Santa Fe · New Mexico</div>
+<div class="heroE-schedule">
+<div class="heroE-sched-col">
+<span class="heroE-sched-time">5pm</span>
+<span class="heroE-sched-label">Ceremony</span>
+<span class="heroE-sched-detail">New Mexico<br>Museum of Art</span>
+</div>
+<div class="heroE-sched-divider" aria-hidden="true"></div>
+<div class="heroE-sched-col">
+<span class="heroE-sched-time">7pm</span>
+<span class="heroE-sched-label">Reception</span>
+<span class="heroE-sched-detail">Meow Wolf</span>
+</div>
+</div>
+</div>
+
+</div>
+
+<span class="heroE-note">( Note: This is a 21+ journey )</span>
+</header>
+{{ end }}
+
+{{ define "main" }}{{ end }}
+
+{{ define "content" }}{{ end }}
