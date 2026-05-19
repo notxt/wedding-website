@@ -70,7 +70,11 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 	mux.Handle("GET /static/", staticHandler)
+	mux.HandleFunc("GET /favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/static/img/favicon.svg", http.StatusMovedPermanently)
+	})
 	mux.HandleFunc("GET /{$}", handlers.Home(tmpls))
+	mux.HandleFunc("GET /", handlers.NotFound(tmpls))
 	mux.HandleFunc("GET /faqs", handlers.FAQs(tmpls))
 	mux.HandleFunc("GET /information", handlers.Page(tmpls, "information.html"))
 	mux.HandleFunc("GET /information/itinerary", handlers.Page(tmpls, "information-itinerary.html"))
@@ -88,10 +92,15 @@ func main() {
 	mux.Handle("POST /rsvp", authMW.RequireRSVPAuth(handlers.RSVPSubmit(tmpls, st)))
 	mux.Handle("GET /rsvp/thanks", authMW.RequireRSVPAuth(handlers.RSVPThanks(tmpls)))
 
+	var handler http.Handler = mux
+	handler = middleware.Recover(tmpls)(handler)
+	handler = middleware.CanonicalPath(handler)
+	handler = middleware.SecureHeaders(handler)
+
 	addr := net.JoinHostPort("", cfg.Port)
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           mux,
+		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 

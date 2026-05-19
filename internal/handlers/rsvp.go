@@ -55,8 +55,7 @@ func RSVPSubmit(t *templates.Set, st *store.Store) http.HandlerFunc {
 				OtherAllergies: r.PostFormValue("other_allergies"),
 				Errors:         errs,
 			}
-			w.WriteHeader(http.StatusBadRequest)
-			t.Render(w, r, "rsvp.html", view)
+			t.RenderStatus(w, r, "rsvp.html", http.StatusBadRequest, view)
 			return
 		}
 		if ip := clientIP(r); ip != "" {
@@ -66,7 +65,7 @@ func RSVPSubmit(t *templates.Set, st *store.Store) http.HandlerFunc {
 		defer cancel()
 		if _, err := st.InsertRSVP(ctx, rsvp); err != nil {
 			slog.Error("insert rsvp failed", "err", err, "path", r.URL.Path)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			RenderInternalError(t, w, r)
 			return
 		}
 		http.Redirect(w, r, "/rsvp/thanks", http.StatusSeeOther)
@@ -87,8 +86,7 @@ func RSVPAuthSubmit(t *templates.Set, signer *session.Signer, accessCode string)
 		}
 		code := r.PostFormValue("code")
 		if subtle.ConstantTimeCompare([]byte(code), []byte(accessCode)) != 1 {
-			w.WriteHeader(http.StatusUnauthorized)
-			t.Render(w, r, "rsvp-auth.html", AuthForm{Error: "Incorrect code. Please try again."})
+			t.RenderStatus(w, r, "rsvp-auth.html", http.StatusUnauthorized, AuthForm{Error: "Incorrect code. Please try again."})
 			return
 		}
 		http.SetCookie(w, &http.Cookie{

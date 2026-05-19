@@ -36,6 +36,8 @@ func Load() (*Set, error) {
 		"rsvp.html",
 		"rsvp-auth.html",
 		"rsvp-thanks.html",
+		"404.html",
+		"500.html",
 	}
 	partials := []string{"layout.html", "home-hero.html"}
 	pages := make(map[string]*template.Template, len(pageNames))
@@ -50,6 +52,10 @@ func Load() (*Set, error) {
 }
 
 func (s *Set) Render(w http.ResponseWriter, r *http.Request, name string, data any) {
+	s.RenderStatus(w, r, name, http.StatusOK, data)
+}
+
+func (s *Set) RenderStatus(w http.ResponseWriter, r *http.Request, name string, status int, data any) {
 	t, ok := s.pages[name]
 	if !ok {
 		slog.Error("template not found", "name", name, "path", r.URL.Path)
@@ -64,6 +70,6 @@ func (s *Set) Render(w http.ResponseWriter, r *http.Request, name string, data a
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(status)
 	_, _ = buf.WriteTo(w)
 }
