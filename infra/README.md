@@ -8,6 +8,7 @@ CloudFormation templates for the wedding website. Deploy scripts live in `bin/`.
 |---------------|------------------------|------------------------------------------------------|
 | `wedding-bootstrap` | `infra/bootstrap.yaml` | S3 bucket used to stage CFN deployment artifacts for later stacks. |
 | `wedding-network`   | `infra/network.yaml`   | VPC + 4 subnets + IGW + route tables. Imported by `wedding-data` and `wedding-app`. |
+| `wedding-data`      | `infra/data.yaml`      | RDS Postgres in the private subnets, plus the `ACCESS_CODE` + `SESSION_SECRET` secrets the app reads at boot. |
 
 ## Prerequisites
 
@@ -20,9 +21,12 @@ CloudFormation templates for the wedding website. Deploy scripts live in `bin/`.
 Each stack has a deploy script in `bin/` that does the same thing: cfn-lint → `aws cloudformation validate-template` → `aws cloudformation deploy` → print outputs. Idempotent — re-running with no changes exits 0 via `--no-fail-on-empty-changeset`.
 
 ```bash
-./bin/deploy-bootstrap.sh    # one-time, account-level bucket for CFN artifacts
-./bin/deploy-network.sh      # VPC + subnets; foundation for the rest
+./bin/deploy-bootstrap.sh                                       # one-time, account-level bucket for CFN artifacts
+./bin/deploy-network.sh                                         # VPC + subnets; foundation for the rest
+ACCESS_CODE='<your shared phrase>' ./bin/deploy-data.sh         # RDS + secrets (first run only; re-runs no-op the secrets)
 ```
+
+`deploy-data.sh` provisions two Secrets Manager secrets (`wedding/access-code`, `wedding/session-secret`) **outside** CFN so their values never flow through stack parameters, then passes their ARNs into the stack. On first run it requires the `ACCESS_CODE` env var; subsequent runs reuse the existing secrets. The session secret is auto-generated (`openssl rand -base64 32`) on first run.
 
 Stack outputs print at the end. You can also fetch them later:
 
