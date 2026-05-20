@@ -1,0 +1,26 @@
+[Unit]
+Description=Wedding website (Go server)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wedding
+Group=wedding
+EnvironmentFile=/etc/wedding-website/env
+ExecStart=/opt/wedding-website/server
+StandardOutput=append:/var/log/wedding-website.log
+StandardError=append:/var/log/wedding-website.log
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log
+
+[Install]
+WantedBy=multi-user.target

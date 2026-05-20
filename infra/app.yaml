@@ -1,0 +1,476 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: App stack for the wedding website. ALB + ACM + Route53 + EC2 ASG + CodeDeploy. Imports network from wedding-network and data exports from wedding-data. Brings the site live at https://michaelandadrien4ever.com.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: wedding
+    Description: Short project identifier; used in export names and resource tags.
+
+  NetworkStackName:
+    Type: String
+    Default: wedding-network
+
+  DataStackName:
+    Type: String
+    Default: wedding-data
+
+  BootstrapStackName:
+    Type: String
+    Default: wedding-bootstrap
+
+  DomainName:
+    Type: String
+    Default: michaelandadrien4ever.com
+
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Route53 hosted zone ID for the domain. Looked up by the deploy script.
+
+  InstanceType:
+    Type: String
+    Default: t4g.micro
+
+  AmiParameter:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64
+    Description: SSM parameter holding the latest AL2023 arm64 AMI ID.
+
+  AppPort:
+    Type: Number
+    Default: 8080
+
+Resources:
+
+  # --- Security groups ---
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${ProjectName} ALB ingress (80 + 443 from world)"
+      VpcId:
+        Fn::ImportValue: !Sub "${NetworkStackName}-VpcId"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP from world (redirected to HTTPS)
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS from world
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-alb-sg"
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${ProjectName} EC2 app ingress (only from ALB)"
+      VpcId:
+        Fn::ImportValue: !Sub "${NetworkStackName}-VpcId"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref AppPort
+          ToPort: !Ref AppPort
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+          Description: App port from ALB only
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-app-sg"
+
+  DbSecurityGroupIngressFromApp:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Postgres from app SG
+      GroupId:
+        Fn::ImportValue: !Sub "${DataStackName}-DbSecurityGroupId"
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  # --- ACM cert (DNS-validated, both apex and www) ---
+
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      SubjectAlternativeNames:
+        - !Sub "www.${DomainName}"
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+        - DomainName: !Sub "www.${DomainName}"
+          HostedZoneId: !Ref HostedZoneId
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-cert"
+
+  # --- ALB + target group + listeners ---
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${ProjectName}-alb"
+      Scheme: internet-facing
+      Type: application
+      IpAddressType: ipv4
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+      Subnets:
+        Fn::Split:
+          - ","
+          - Fn::ImportValue: !Sub "${NetworkStackName}-PublicSubnetIds"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-alb"
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ProjectName}-tg"
+      VpcId:
+        Fn::ImportValue: !Sub "${NetworkStackName}-VpcId"
+      TargetType: instance
+      Protocol: HTTP
+      Port: !Ref AppPort
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /healthz
+      HealthCheckPort: traffic-port
+      HealthCheckIntervalSeconds: 15
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: "200"
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "30"
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: "443"
+            Host: "#{host}"
+            Path: "/#{path}"
+            Query: "#{query}"
+            StatusCode: HTTP_301
+
+  HttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Protocol: HTTPS
+      Port: 443
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      Certificates:
+        - CertificateArn: !Ref Certificate
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  # --- Route53 records (apex + www) ---
+
+  ApexARecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "${DomainName}."
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt LoadBalancer.DNSName
+        HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+        EvaluateTargetHealth: false
+
+  WwwARecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub "www.${DomainName}."
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt LoadBalancer.DNSName
+        HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+        EvaluateTargetHealth: false
+
+  # --- CloudWatch log group ---
+
+  AppLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /wedding/app
+      RetentionInDays: 30
+
+  # --- IAM: instance role ---
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: read-secrets
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource:
+                  - Fn::ImportValue: !Sub "${DataStackName}-DbMasterSecretArn"
+                  - Fn::ImportValue: !Sub "${DataStackName}-AccessCodeSecretArn"
+                  - Fn::ImportValue: !Sub "${DataStackName}-SessionSecretArn"
+        - PolicyName: read-codedeploy-bundles
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                Resource:
+                  Fn::Sub:
+                    - "${BucketArn}/*"
+                    - BucketArn:
+                        Fn::ImportValue: !Sub "${BootstrapStackName}-CfnBucketArn"
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource:
+                  Fn::ImportValue: !Sub "${BootstrapStackName}-CfnBucketArn"
+        - PolicyName: write-app-logs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogStreams
+                Resource: !GetAtt AppLogGroup.Arn
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref InstanceRole
+
+  # --- IAM: CodeDeploy service role ---
+
+  CodeDeployServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codedeploy.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+
+  # --- Launch template ---
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub "${ProjectName}-app"
+      LaunchTemplateData:
+        ImageId: !Ref AmiParameter
+        InstanceType: !Ref InstanceType
+        IamInstanceProfile:
+          Arn: !GetAtt InstanceProfile.Arn
+        SecurityGroupIds:
+          - !Ref AppSecurityGroup
+        MetadataOptions:
+          HttpTokens: required
+          HttpPutResponseHopLimit: 2
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub "${ProjectName}-app"
+        UserData:
+          Fn::Base64:
+            Fn::Sub:
+              - |
+                #!/bin/bash
+                set -euo pipefail
+                exec > >(tee -a /var/log/userdata.log) 2>&1
+                echo "userdata start: $(date -u)"
+
+                dnf -y update
+                dnf -y install ruby wget jq awscli amazon-cloudwatch-agent
+
+                # CodeDeploy agent (region-specific bucket)
+                cd /tmp
+                wget -q https://aws-codedeploy-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/latest/install -O codedeploy-install
+                chmod +x ./codedeploy-install
+                ./codedeploy-install auto
+
+                # wedding service user (no shell, no home)
+                id -u wedding >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin wedding
+
+                # Directories
+                install -d -m 0755 -o wedding -g wedding /opt/wedding-website
+                install -d -m 0750 -o root    -g wedding /etc/wedding-website
+
+                # Fetch secrets and write env file
+                DB_JSON=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id "${DbMasterSecretArn}" --query SecretString --output text)
+                DB_USER=$(echo "$DB_JSON" | jq -r '.username | @uri')
+                DB_PASS=$(echo "$DB_JSON" | jq -r '.password | @uri')
+                ACCESS_CODE=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id "${AccessCodeSecretArn}" --query SecretString --output text)
+                SESSION_SECRET=$(aws secretsmanager get-secret-value --region ${AWS::Region} --secret-id "${SessionSecretArn}" --query SecretString --output text)
+
+                umask 027
+                cat > /etc/wedding-website/env <<ENVFILE
+                PORT=${AppPort}
+                DATABASE_URL=postgres://$DB_USER:$DB_PASS@${DbEndpoint}:${DbPort}/${DbName}?sslmode=require
+                ACCESS_CODE=$ACCESS_CODE
+                SESSION_SECRET=$SESSION_SECRET
+                ENVFILE
+                chown root:wedding /etc/wedding-website/env
+                chmod 0640 /etc/wedding-website/env
+
+                # CloudWatch agent config (tails the wedding-website log file)
+                cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'CWCFG'
+                {
+                  "logs": {
+                    "logs_collected": {
+                      "files": {
+                        "collect_list": [
+                          {
+                            "file_path": "/var/log/wedding-website.log",
+                            "log_group_name": "/wedding/app",
+                            "log_stream_name": "{instance_id}",
+                            "retention_in_days": 30
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+                CWCFG
+                /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+
+                echo "userdata done: $(date -u)"
+              - DbMasterSecretArn:
+                  Fn::ImportValue: !Sub "${DataStackName}-DbMasterSecretArn"
+                AccessCodeSecretArn:
+                  Fn::ImportValue: !Sub "${DataStackName}-AccessCodeSecretArn"
+                SessionSecretArn:
+                  Fn::ImportValue: !Sub "${DataStackName}-SessionSecretArn"
+                DbEndpoint:
+                  Fn::ImportValue: !Sub "${DataStackName}-DbEndpoint"
+                DbPort:
+                  Fn::ImportValue: !Sub "${DataStackName}-DbPort"
+                DbName:
+                  Fn::ImportValue: !Sub "${DataStackName}-DbName"
+
+  # --- Auto Scaling Group ---
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+      - HttpsListener
+      - DbSecurityGroupIngressFromApp
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 1
+        MinInstancesInService: 0
+        PauseTime: PT5M
+        WaitOnResourceSignals: false
+    Properties:
+      AutoScalingGroupName: !Sub "${ProjectName}-app"
+      VPCZoneIdentifier:
+        Fn::Split:
+          - ","
+          - Fn::ImportValue: !Sub "${NetworkStackName}-PublicSubnetIds"
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MinSize: "1"
+      MaxSize: "1"
+      DesiredCapacity: "1"
+      HealthCheckType: EC2
+      HealthCheckGracePeriod: 300
+      TargetGroupARNs:
+        - !Ref TargetGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-app"
+          PropagateAtLaunch: true
+
+  # --- CodeDeploy ---
+
+  CodeDeployApplication:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ApplicationName: !Sub "${ProjectName}-website"
+      ComputePlatform: Server
+
+  DeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref CodeDeployApplication
+      DeploymentGroupName: !Sub "${ProjectName}-website"
+      ServiceRoleArn: !GetAtt CodeDeployServiceRole.Arn
+      DeploymentConfigName: CodeDeployDefault.AllAtOnce
+      DeploymentStyle:
+        DeploymentType: IN_PLACE
+        DeploymentOption: WITHOUT_TRAFFIC_CONTROL
+      AutoScalingGroups:
+        - !Ref AutoScalingGroup
+
+Outputs:
+  AlbDnsName:
+    Description: Public DNS name of the ALB.
+    Value: !GetAtt LoadBalancer.DNSName
+    Export:
+      Name: !Sub "${ProjectName}-app-AlbDnsName"
+
+  AlbHostedZoneId:
+    Description: Canonical hosted zone ID of the ALB (for alias records).
+    Value: !GetAtt LoadBalancer.CanonicalHostedZoneID
+    Export:
+      Name: !Sub "${ProjectName}-app-AlbHostedZoneId"
+
+  CodeDeployApplicationName:
+    Description: CodeDeploy application name (used by bin/deploy-app.sh).
+    Value: !Ref CodeDeployApplication
+    Export:
+      Name: !Sub "${ProjectName}-app-CodeDeployApplicationName"
+
+  DeploymentGroupName:
+    Description: CodeDeploy deployment group name.
+    Value: !Ref DeploymentGroup
+    Export:
+      Name: !Sub "${ProjectName}-app-DeploymentGroupName"
+
+  AppSecurityGroupId:
+    Description: Security group attached to the EC2 instance.
+    Value: !Ref AppSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-app-AppSecurityGroupId"
+
+  SiteUrl:
+    Description: Public URL for the site.
+    Value: !Sub "https://${DomainName}"

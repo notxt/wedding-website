@@ -9,6 +9,9 @@
 *.test
 *.out
 
+# deploy bundle staging (produced by bin/deploy-app.sh)
+/build/
+
 # IDE
 .idea/
 .vscode/
