@@ -1,7 +1,7 @@
-# 015c — App stack: ALB + DNS + TLS + EC2 ASG + CodeDeploy + first live deploy
+# 015d — App stack: ALB + DNS + TLS + EC2 ASG + CodeDeploy + first live deploy
 
 ## Why
-Bring the site live at `https://michaelandadrien4ever.com`. ALB-terminated TLS, single-instance self-healing ASG, CodeDeploy (IN_PLACE) for app revisions. Imports the data layer from 015b.
+Bring the site live at `https://michaelandadrien4ever.com`. ALB-terminated TLS, single-instance self-healing ASG, CodeDeploy (IN_PLACE) for app revisions. Imports the network from 015b (`wedding-network`) and the data layer from 015c (`wedding-data`).
 
 ## Acceptance criteria
 - [ ] `infra/app.yaml` defines stack `wedding-app` with:
@@ -29,11 +29,12 @@ Bring the site live at `https://michaelandadrien4ever.com`. ALB-terminated TLS, 
 - [ ] Self-healing: `aws ec2 stop-instances` on the running instance → ASG replaces it; site recovers without manual intervention.
 - [ ] `infra/README.md` updated with the app stack + deploy command + revision-deploy command.
 - [ ] `SPEC.md` updated to note the deployment shape (ALB + ASG + CodeDeploy + RDS).
-- [ ] `_tasks/015c-app-stack.md` deleted in the merging PR.
+- [ ] `_tasks/015d-app-stack.md` deleted in the merging PR.
 
 ## Notes
 - Region `us-west-2`, account `755621201894`.
-- Imports from `wedding-data`: `VpcId`, `PublicSubnetIds`, `DbEndpoint`, `DbPort`, `DbName`, `DbMasterSecretArn`, `AccessCodeSecretArn`, `SessionSecretArn`, `DbSecurityGroupId`.
+- Imports from `wedding-network`: `VpcId`, `PublicSubnetIds`.
+- Imports from `wedding-data`: `DbEndpoint`, `DbPort`, `DbName`, `DbMasterSecretArn`, `AccessCodeSecretArn`, `SessionSecretArn`, `DbSecurityGroupId`.
 - Server is fully self-contained (templates + migrations + static via `embed.FS`). Deploy bundle = `server` binary + `appspec.yml` + `wedding-website.service` + `scripts/*.sh`.
 - Server runtime is already correct for this topology: binds `0.0.0.0:$PORT`, `/healthz` pings DB (200/503), respects `X-Forwarded-For` / `X-Forwarded-Proto`, handles SIGTERM with 10s drain. **No code changes needed.**
 - ALB terminates TLS; server speaks plain HTTP on 8080 internally.
