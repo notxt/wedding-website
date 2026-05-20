@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Data layer for the wedding website. RDS Postgres in the private subnets of wedding-network, plus the app secrets the EC2 instance reads at boot. App SG ingress to the DB SG is added later by wedding-app.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: wedding
+    Description: Short project identifier; used in export names and resource tags.
+
+  NetworkStackName:
+    Type: String
+    Default: wedding-network
+    Description: Name of the network stack to import VpcId / PrivateSubnetIds from.
+
+  AccessCodeSecretArn:
+    Type: String
+    Description: ARN of the pre-created Secrets Manager secret holding ACCESS_CODE. Created by bin/deploy-data.sh outside CFN so its value never flows through stack parameters.
+
+  SessionSecretArn:
+    Type: String
+    Description: ARN of the pre-created Secrets Manager secret holding SESSION_SECRET. Created by bin/deploy-data.sh outside CFN.
+
+  DbInstanceClass:
+    Type: String
+    Default: db.t4g.micro
+
+  DbEngineVersion:
+    Type: String
+    Default: "16"
+    Description: Postgres major version; AWS picks the latest minor automatically.
+
+  DbAllocatedStorage:
+    Type: Number
+    Default: 20
+
+  DbBackupRetentionDays:
+    Type: Number
+    Default: 7
+
+  DbMasterUsername:
+    Type: String
+    Default: wedding
+
+  DbName:
+    Type: String
+    Default: wedding
+
+Resources:
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub "${ProjectName} RDS private subnets"
+      SubnetIds:
+        Fn::Split:
+          - ","
+          - Fn::ImportValue: !Sub "${NetworkStackName}-PrivateSubnetIds"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-db-subnet-group"
+
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${ProjectName} RDS access (ingress from app SG added by wedding-app)"
+      VpcId:
+        Fn::ImportValue: !Sub "${NetworkStackName}-VpcId"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-db-sg"
+
+  DbInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      DBInstanceIdentifier: !Ref ProjectName
+      Engine: postgres
+      EngineVersion: !Ref DbEngineVersion
+      DBInstanceClass: !Ref DbInstanceClass
+      AllocatedStorage: !Ref DbAllocatedStorage
+      StorageType: gp3
+      StorageEncrypted: true
+      MultiAZ: false
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      VPCSecurityGroups:
+        - !Ref DbSecurityGroup
+      PubliclyAccessible: false
+      MasterUsername: !Ref DbMasterUsername
+      ManageMasterUserPassword: true
+      DBName: !Ref DbName
+      BackupRetentionPeriod: !Ref DbBackupRetentionDays
+      DeletionProtection: true
+      AutoMinorVersionUpgrade: true
+      CopyTagsToSnapshot: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-db"
+
+Outputs:
+  DbEndpoint:
+    Description: Hostname of the RDS instance.
+    Value: !GetAtt DbInstance.Endpoint.Address
+    Export:
+      Name: !Sub "${ProjectName}-data-DbEndpoint"
+
+  DbPort:
+    Description: Postgres port (typically 5432).
+    Value: !GetAtt DbInstance.Endpoint.Port
+    Export:
+      Name: !Sub "${ProjectName}-data-DbPort"
+
+  DbName:
+    Description: Initial database name.
+    Value: !Ref DbName
+    Export:
+      Name: !Sub "${ProjectName}-data-DbName"
+
+  DbMasterSecretArn:
+    Description: ARN of the Secrets Manager secret holding the master credentials (RDS-managed).
+    Value: !GetAtt DbInstance.MasterUserSecret.SecretArn
+    Export:
+      Name: !Sub "${ProjectName}-data-DbMasterSecretArn"
+
+  DbSecurityGroupId:
+    Description: ID of the DB security group; wedding-app adds ingress rules from the app SG.
+    Value: !Ref DbSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-data-DbSecurityGroupId"
+
+  AccessCodeSecretArn:
+    Description: ARN of the ACCESS_CODE secret (pre-created outside CFN).
+    Value: !Ref AccessCodeSecretArn
+    Export:
+      Name: !Sub "${ProjectName}-data-AccessCodeSecretArn"
+
+  SessionSecretArn:
+    Description: ARN of the SESSION_SECRET secret (pre-created outside CFN).
+    Value: !Ref SessionSecretArn
+    Export:
+      Name: !Sub "${ProjectName}-data-SessionSecretArn"
