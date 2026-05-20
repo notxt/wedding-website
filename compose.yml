@@ -10,14 +10,9 @@ services:
       - ${HOME}/.claude:/home/dev/.claude
       - ${HOME}/.claude.json:/home/dev/.claude.json
       - ${CLAUDE_GH_APP_DIR:-../claude_gh_app}:/run/secrets/gh:ro
+      - ${HOME}/.aws:/home/dev/.aws:ro
     environment:
       WEDDING_DEV_CONTAINER: "1"
-      AWS_ACCESS_KEY_ID:
-      AWS_SECRET_ACCESS_KEY:
-      AWS_SESSION_TOKEN:
-      AWS_REGION:
-      AWS_DEFAULT_REGION:
-      AWS_PROFILE:
       GH_APP_ID: "3590597"
       GH_APP_INSTALL_ID: "129258904"
       GH_APP_KEY_FILE: /run/secrets/gh/claude-notxt.2026-05-03.private-key.pem

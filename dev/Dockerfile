@@ -15,7 +15,13 @@ RUN dnf install -y \
         ca-certificates \
         shadow-utils \
         postgresql16 \
+        python3-pip \
     && dnf clean all
+
+RUN python3 -m venv /opt/cfn-lint \
+ && /opt/cfn-lint/bin/pip install --no-cache-dir --upgrade pip \
+ && /opt/cfn-lint/bin/pip install --no-cache-dir "cfn-lint==1.46.0" \
+ && ln -s /opt/cfn-lint/bin/cfn-lint /usr/local/bin/cfn-lint
 
 RUN case "$(uname -m)" in \
       x86_64)  GOARCH=amd64 ;; \
