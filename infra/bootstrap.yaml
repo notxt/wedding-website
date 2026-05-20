@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Bootstrap stack for the wedding website. Provisions an S3 bucket used to stage CloudFormation deployment artifacts (packaged templates, container build context, etc.) consumed by later stacks.
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: wedding
+    Description: Short project identifier; used to name the CFN bucket and export values.
+
+Resources:
+  CfnBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-${ProjectName}-cfn"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-noncurrent-versions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 30
+          - Id: abort-incomplete-multipart
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+
+Outputs:
+  CfnBucketName:
+    Description: Name of the CFN deployment artifacts bucket.
+    Value: !Ref CfnBucket
+    Export:
+      Name: !Sub "${ProjectName}-bootstrap-CfnBucketName"
+  CfnBucketArn:
+    Description: ARN of the CFN deployment artifacts bucket.
+    Value: !GetAtt CfnBucket.Arn
+    Export:
+      Name: !Sub "${ProjectName}-bootstrap-CfnBucketArn"

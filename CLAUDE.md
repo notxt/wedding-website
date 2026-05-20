@@ -81,11 +81,7 @@ docker compose run --rm dev
 
 This drops you into a bash shell at `/workspace` (the repo, bind-mounted), with a sibling `postgres` service reachable at `postgres:5432`.
 
-**AWS credentials** are passed through from the host shell via env vars (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_REGION`, `AWS_DEFAULT_REGION`, `AWS_PROFILE`). Tip — to materialize a profile into env vars:
-
-```bash
-eval "$(aws configure export-credentials --profile <name> --format env)"
-```
+**AWS credentials**: the host `~/.aws` is mounted read-only at `/home/dev/.aws`. Authenticate on the host (`aws login`); the container's own AWS CLI then resolves the profile and mints short-lived creds from the cached login session, refreshing them itself as they expire. No env vars to wrangle, and the region rides along from `~/.aws/config`. When the login session itself expires, re-run `aws login` on the host.
 
 **GitHub App key** is mounted read-only from `${CLAUDE_GH_APP_DIR:-../claude_gh_app}` (relative to the repo root). The container fetches a fresh installation token on every `git push` via a credential helper — no token wrangling needed.
 
@@ -95,6 +91,7 @@ eval "$(aws configure export-credentials --profile <name> --format env)"
 - the repo (read-write — Claude needs to edit it)
 - `~/.claude` and `~/.claude.json` (read-write — preserves your Claude Code login + settings)
 - the GH App key dir (read-only)
+- `~/.aws` (read-only — lets the container's AWS CLI use the host login session)
 
 No docker socket. No host network. Runs as a non-root `dev` user. This is the boundary that makes `--dangerously-skip-permissions` acceptable.
 
