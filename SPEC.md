@@ -18,7 +18,7 @@ Architecture and design reference for the wedding website. Process and conventio
 | Migrations     | Plain `.sql` files in `migrations/`, applied idempotently on server start |
 | Frontend       | Plain HTML + plain CSS, no JS framework, no build step          |
 | Fonts          | Playfair Display (headings) + Playfair (body), self-hosted woff2 |
-| Deployment     | CloudFormation → ECS Fargate (or App Runner) + RDS (later phase)|
+| Deployment     | CloudFormation → ALB + EC2 ASG (1/1/1) + CodeDeploy + RDS       |
 
 ## Routes
 
@@ -116,11 +116,21 @@ wedding-website/
     └── img/
 ```
 
+## Production deployment
+
+Four CFN stacks in `infra/`, deployed in this order (see `infra/README.md`):
+
+1. **`wedding-bootstrap`** — S3 bucket for CFN artifacts and CodeDeploy revision bundles.
+2. **`wedding-network`** — VPC `10.0.0.0/16`, two public + two private subnets across us-west-2a/b, IGW, route tables. No NAT (EC2 lives in public subnets with SG-locked ingress).
+3. **`wedding-data`** — RDS Postgres (`db.t4g.micro`, single-AZ, encrypted, deletion-protected, 7-day backups). Master credentials managed by RDS in Secrets Manager. App-level `ACCESS_CODE` and `SESSION_SECRET` secrets created outside CFN by the deploy script.
+4. **`wedding-app`** — ACM cert (DNS-validated, apex + www), ALB with HTTPS→target-group + HTTP→301 listeners, target group with `/healthz` health check, Route53 alias records, EC2 launch template (AL2023 arm64 `t4g.micro`, instance role with Secrets Manager + CW Logs + SSM + S3 read on the bootstrap bucket), ASG `1/1/1` self-healing, CodeDeploy (IN_PLACE, AllAtOnce).
+
+Instance userdata installs the CodeDeploy + CloudWatch agents, fetches secrets, and writes `/etc/wedding-website/env` with `DATABASE_URL` (including `sslmode=require`), `ACCESS_CODE`, `SESSION_SECRET`, and `PORT=8080`. The Go binary + systemd unit + lifecycle hook scripts ship via CodeDeploy out of `deploy/` in this repo (`bin/deploy-app.sh` builds, bundles, uploads to S3, and creates a deployment).
+
 ## Out of scope (for now)
 
-- AWS infrastructure (separate phase — task 015)
-- Custom domain, TLS termination
 - Email notifications on RSVP submit
 - Photo gallery, the proposal page (copy doc marks these as TBD)
 - Itinerary content, things-to-do content (copy doc has these as stubs)
 - Per-guest authentication, edit-your-RSVP flow
+- CloudWatch alarms / WAF / blue-green CodeDeploy / multi-AZ RDS
