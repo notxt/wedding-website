@@ -12,19 +12,14 @@
 {{ template "home-hero-mountain" . }}
 
 <nav class="hNav">
-<a href="/" aria-label="Adrien &amp; Michael — home"><img class="hNav-mark" src="/static/img/ma-monogram.svg" alt="A &amp; M monogram"></a>
 <div class="hNav-links">
+<a class="hNav-rsvp" href="/rsvp">RSVP</a>
 <a href="/faqs">FAQs</a>
 <a href="/information/travel">Travel</a>
 <a href="/information/things-to-do">Things to Do</a>
 <a href="/contact/registry">Registry</a>
-<a class="hNav-rsvp" href="/rsvp">RSVP</a>
 </div>
 </nav>
-
-<span class="heroE-edge heroE-edge-tl">An invitation —</span>
-<span class="heroE-edge heroE-edge-tr">Santa Fe · New Mexico</span>
-<span class="heroE-edge heroE-edge-rot">Two · Thousand · Twenty-Six</span>
 
 <div class="heroE-stage">
 
@@ -35,20 +30,18 @@
 <div class="heroE-zone heroE-zone-names">
 <div class="heroE-lockup heroE-lockup-who">
 <div class="heroE-row heroE-row-top">
-<span class="heroE-word heroE-word-outline">ADRIEN</span>
+<span class="heroE-word">ADRIEN</span>
 </div>
 <div class="heroE-row heroE-row-mid">
 <span class="heroE-amp">&amp;</span>
 </div>
 <div class="heroE-row heroE-row-bot">
-<span class="heroE-word heroE-word-outline">MICHAEL</span>
+<span class="heroE-word">MICHAEL</span>
 </div>
 </div>
 </div>
 
-<div class="heroE-divider heroE-divider-moon" aria-hidden="true">
-{{ template "home-hero-moon" . }}
-</div>
+<div class="heroE-divider heroE-divider-orbit" aria-hidden="true"></div>
 
 <div class="heroE-zone heroE-zone-invite">
 <span class="heroE-mood">Join them under the high desert moon</span>
@@ -92,6 +85,6 @@
 </header>
 {{ end }}
 
-{{ define "main" }}{{ end }}
+{{ define "main" }}<!-- home: main suppressed -->{{ end }}
 
 {{ define "content" }}{{ end }}

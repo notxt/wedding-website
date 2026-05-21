@@ -29,8 +29,7 @@ func renderStars() template.HTML {
 			radius = 0.6
 		}
 		opacity := (0.25 + r.Float64()*0.6) * 0.65
-		fmt.Fprintf(&b, `<circle cx="%.2f" cy="%.2f" r="%.2f" fill="#e6d5b3" opacity="%.3f"/>`,
-			x, y, radius, opacity)
+		writeStar(&b, r, x, y, radius, opacity, 0.18)
 	}
 
 	clusters := []struct {
@@ -54,8 +53,7 @@ func renderStars() template.HTML {
 				radius = 0.8
 			}
 			opacity := (0.35 + r.Float64()*0.55) * 0.65
-			fmt.Fprintf(&b, `<circle cx="%.2f" cy="%.2f" r="%.2f" fill="#e6d5b3" opacity="%.3f"/>`,
-				c.cx+dx, c.cy+dy, radius, opacity)
+			writeStar(&b, r, c.cx+dx, c.cy+dy, radius, opacity, 0.22)
 		}
 	}
 
@@ -66,10 +64,28 @@ func renderStars() template.HTML {
 		{560, 380, 1.8}, {380, 620, 2.2}, {1240, 360, 1.8},
 	}
 	for _, f := range features {
+		dur := 4.0 + r.Float64()*4.0
+		delay := r.Float64() * dur
 		fmt.Fprintf(&b,
-			`<g><circle cx="%.0f" cy="%.0f" r="%.2f" fill="#e6d5b3" opacity="0.05"/><circle cx="%.0f" cy="%.0f" r="%.2f" fill="#e6d5b3" opacity="0.85"/></g>`,
-			f.x, f.y, f.r*2.4, f.x, f.y, f.r)
+			`<g class="heroE-twinkle" style="animation-duration:%.2fs;animation-delay:-%.2fs"><circle cx="%.0f" cy="%.0f" r="%.2f" fill="#e6d5b3" opacity="0.05"/><circle cx="%.0f" cy="%.0f" r="%.2f" fill="#e6d5b3" opacity="0.85"/></g>`,
+			dur, delay, f.x, f.y, f.r*2.4, f.x, f.y, f.r)
 	}
 
 	return template.HTML(b.String())
+}
+
+// writeStar emits a single SVG <circle>. With probability twinkleProb it
+// adds the heroE-twinkle class plus a randomized animation-duration and
+// animation-delay so the twinkling stars are out of phase.
+func writeStar(b *strings.Builder, r *rand.Rand, x, y, radius, opacity, twinkleProb float64) {
+	if r.Float64() < twinkleProb {
+		dur := 3.5 + r.Float64()*4.5
+		delay := r.Float64() * dur
+		fmt.Fprintf(b,
+			`<circle class="heroE-twinkle" style="animation-duration:%.2fs;animation-delay:-%.2fs" cx="%.2f" cy="%.2f" r="%.2f" fill="#e6d5b3" opacity="%.3f"/>`,
+			dur, delay, x, y, radius, opacity)
+		return
+	}
+	fmt.Fprintf(b, `<circle cx="%.2f" cy="%.2f" r="%.2f" fill="#e6d5b3" opacity="%.3f"/>`,
+		x, y, radius, opacity)
 }
