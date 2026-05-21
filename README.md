@@ -9,10 +9,12 @@ A Go MPA. Most pages public; RSVP gated behind a shared access code.
 Recommended: use the dev container.
 
 ```bash
-docker compose run --rm dev
+./bin/dev.sh
 # inside the container:
 go run ./cmd/server
 ```
+
+`bin/dev.sh` is a thin wrapper around `docker compose run --rm --service-ports dev` — the `--service-ports` flag is what lets `http://localhost:8080` from your browser reach the server inside the container.
 
 The container has Go, the AWS CLI, `gh`, and Claude Code preinstalled, plus a sibling Postgres service. See `CLAUDE.md` for the full setup (AWS creds passthrough, GitHub App key location, trust boundary).
 

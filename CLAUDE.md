@@ -76,10 +76,12 @@ A containerized dev environment lives in `dev/`. Run inside it instead of instal
 **Run it:**
 
 ```bash
-docker compose run --rm dev
+./bin/dev.sh
 ```
 
-This drops you into a bash shell at `/workspace` (the repo, bind-mounted), with a sibling `postgres` service reachable at `postgres:5432`.
+This is a thin wrapper around `docker compose run --rm --service-ports dev`. The `--service-ports` flag is what makes `localhost:8080` from the host browser reach `go run ./cmd/server` inside the container — plain `docker compose run` ignores `compose.yml`'s `ports:` block.
+
+It drops you into a bash shell at `/workspace` (the repo, bind-mounted), with a sibling `postgres` service reachable at `postgres:5432`.
 
 **AWS credentials**: the host `~/.aws` is mounted read-only at `/home/dev/.aws`. Authenticate on the host (`aws login`); the container's own AWS CLI then resolves the profile and mints short-lived creds from the cached login session, refreshing them itself as they expire. No env vars to wrangle, and the region rides along from `~/.aws/config`. When the login session itself expires, re-run `aws login` on the host.
 
