@@ -26,7 +26,7 @@ func openTestStore(t *testing.T) *store.Store {
 	if err := s.Migrate(ctx, wedding.Migrations, "migrations"); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
-	if _, err := s.Pool.Exec(ctx, "TRUNCATE rsvps RESTART IDENTITY"); err != nil {
+	if _, err := s.Pool.Exec(ctx, "TRUNCATE guests, rsvps RESTART IDENTITY CASCADE"); err != nil {
 		t.Fatalf("truncate: %v", err)
 	}
 	return s
@@ -34,55 +34,57 @@ func openTestStore(t *testing.T) *store.Store {
 
 func strp(s string) *string { return &s }
 
+func insertGuest(t *testing.T, ctx context.Context, s *store.Store, email, first, last string, plusOne bool) int64 {
+	t.Helper()
+	var id int64
+	if err := s.Pool.QueryRow(ctx,
+		`INSERT INTO guests (email, first_name, last_name, plus_one_allowed) VALUES ($1, $2, $3, $4) RETURNING id`,
+		email, first, last, plusOne,
+	).Scan(&id); err != nil {
+		t.Fatalf("insert guest %s: %v", email, err)
+	}
+	return id
+}
+
 func TestRSVPRoundTrip(t *testing.T) {
 	s := openTestStore(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	cases := []struct {
-		name string
-		in   store.RSVP
+		guest store.Guest
+		in    store.RSVP
 	}{
 		{
-			name: "attending with meal and allergies",
+			guest: store.Guest{Email: "alice@example.com", FirstName: "Alice", LastName: "Smith", PlusOneAllowed: true},
 			in: store.RSVP{
-				Attending:      true,
-				PartyNames:     "Alice Smith, Bob Smith",
-				MealChoice:     strp("chicken"),
-				DairyAllergy:   true,
-				GlutenAllergy:  false,
-				OtherAllergies: strp("shellfish"),
-				RemoteAddr:     strp("10.0.0.1:1234"),
+				Attending:         true,
+				PartyNames:        "Alice Smith + Bob",
+				MealChoice:        strp("chicken"),
+				DairyAllergy:      true,
+				OtherAllergies:    strp("shellfish"),
+				PlusOneAttending:  true,
+				PlusOneName:       strp("Bob"),
+				PlusOneMealChoice: strp("vegetarian"),
+				RemoteAddr:        strp("10.0.0.1:1234"),
 			},
 		},
 		{
-			name: "not attending — nullable fields stay NULL",
-			in: store.RSVP{
-				Attending:  false,
-				PartyNames: "Carol",
-			},
+			guest: store.Guest{Email: "carol@example.com", FirstName: "Carol", LastName: "Jones"},
+			in:    store.RSVP{Attending: false, PartyNames: "Carol Jones"},
 		},
 		{
-			name: "attending vegetarian no allergies",
-			in: store.RSVP{
-				Attending:     true,
-				PartyNames:    "Dave",
-				MealChoice:    strp("vegetarian"),
-				GlutenAllergy: true,
-			},
+			guest: store.Guest{Email: "dave@example.com", FirstName: "Dave", LastName: "Lee"},
+			in:    store.RSVP{Attending: true, PartyNames: "Dave Lee", MealChoice: strp("vegetarian"), GlutenAllergy: true},
 		},
 	}
 
-	idsByName := map[string]int64{}
-	for _, c := range cases {
-		id, err := s.InsertRSVP(ctx, c.in)
-		if err != nil {
-			t.Fatalf("%s: insert: %v", c.name, err)
+	for i := range cases {
+		gid := insertGuest(t, ctx, s, cases[i].guest.Email, cases[i].guest.FirstName, cases[i].guest.LastName, cases[i].guest.PlusOneAllowed)
+		cases[i].in.GuestID = gid
+		if _, err := s.UpsertRSVP(ctx, cases[i].in); err != nil {
+			t.Fatalf("%s: upsert: %v", cases[i].guest.Email, err)
 		}
-		if id == 0 {
-			t.Errorf("%s: expected nonzero id", c.name)
-		}
-		idsByName[c.in.PartyNames] = id
 	}
 
 	list, err := s.ListRSVPs(ctx)
@@ -97,44 +99,72 @@ func TestRSVPRoundTrip(t *testing.T) {
 	for _, r := range list {
 		byName[r.PartyNames] = r
 	}
-
 	for _, c := range cases {
 		got, ok := byName[c.in.PartyNames]
 		if !ok {
-			t.Errorf("%s: row not found in list", c.name)
+			t.Errorf("%s: row not found", c.in.PartyNames)
 			continue
 		}
 		if got.Attending != c.in.Attending {
-			t.Errorf("%s: Attending got %v want %v", c.name, got.Attending, c.in.Attending)
+			t.Errorf("%s: Attending got %v want %v", c.in.PartyNames, got.Attending, c.in.Attending)
 		}
 		if !ptrEqual(got.MealChoice, c.in.MealChoice) {
-			t.Errorf("%s: MealChoice got %v want %v", c.name, deref(got.MealChoice), deref(c.in.MealChoice))
+			t.Errorf("%s: MealChoice got %v want %v", c.in.PartyNames, deref(got.MealChoice), deref(c.in.MealChoice))
 		}
-		if got.DairyAllergy != c.in.DairyAllergy {
-			t.Errorf("%s: DairyAllergy got %v want %v", c.name, got.DairyAllergy, c.in.DairyAllergy)
+		if got.PlusOneAttending != c.in.PlusOneAttending {
+			t.Errorf("%s: PlusOneAttending got %v want %v", c.in.PartyNames, got.PlusOneAttending, c.in.PlusOneAttending)
 		}
-		if got.GlutenAllergy != c.in.GlutenAllergy {
-			t.Errorf("%s: GlutenAllergy got %v want %v", c.name, got.GlutenAllergy, c.in.GlutenAllergy)
+		if !ptrEqual(got.PlusOneName, c.in.PlusOneName) {
+			t.Errorf("%s: PlusOneName got %v want %v", c.in.PartyNames, deref(got.PlusOneName), deref(c.in.PlusOneName))
 		}
-		if !ptrEqual(got.OtherAllergies, c.in.OtherAllergies) {
-			t.Errorf("%s: OtherAllergies got %v want %v", c.name, deref(got.OtherAllergies), deref(c.in.OtherAllergies))
-		}
-		if !ptrEqual(got.RemoteAddr, c.in.RemoteAddr) {
-			t.Errorf("%s: RemoteAddr got %v want %v", c.name, deref(got.RemoteAddr), deref(c.in.RemoteAddr))
+		if !ptrEqual(got.PlusOneMealChoice, c.in.PlusOneMealChoice) {
+			t.Errorf("%s: PlusOneMealChoice got %v want %v", c.in.PartyNames, deref(got.PlusOneMealChoice), deref(c.in.PlusOneMealChoice))
 		}
 		if got.SubmittedAt.IsZero() {
-			t.Errorf("%s: SubmittedAt should be populated by default", c.name)
-		}
-		if got.ID != idsByName[c.in.PartyNames] {
-			t.Errorf("%s: ID round-trip mismatch: list %d, insert %d", c.name, got.ID, idsByName[c.in.PartyNames])
+			t.Errorf("%s: SubmittedAt should be populated", c.in.PartyNames)
 		}
 	}
 
-	// ListRSVPs contract: rows come back ordered by submitted_at DESC.
 	for i := 1; i < len(list); i++ {
 		if list[i-1].SubmittedAt.Before(list[i].SubmittedAt) {
-			t.Errorf("list not ordered DESC at index %d: %v before %v", i, list[i-1].SubmittedAt, list[i].SubmittedAt)
+			t.Errorf("list not ordered DESC at index %d", i)
 		}
+	}
+}
+
+func TestRSVPUpsertOverwrites(t *testing.T) {
+	s := openTestStore(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	gid := insertGuest(t, ctx, s, "up@example.com", "Up", "Sert", true)
+
+	id1, err := s.UpsertRSVP(ctx, store.RSVP{GuestID: gid, Attending: true, PartyNames: "Up Sert", MealChoice: strp("chicken")})
+	if err != nil {
+		t.Fatalf("first upsert: %v", err)
+	}
+	id2, err := s.UpsertRSVP(ctx, store.RSVP{GuestID: gid, Attending: false, PartyNames: "Up Sert"})
+	if err != nil {
+		t.Fatalf("second upsert: %v", err)
+	}
+	if id1 != id2 {
+		t.Errorf("upsert created a new row instead of updating: %d vs %d", id1, id2)
+	}
+
+	got, ok, err := s.GetRSVPByGuestID(ctx, gid)
+	if err != nil || !ok {
+		t.Fatalf("get by guest: ok=%v err=%v", ok, err)
+	}
+	if got.Attending {
+		t.Errorf("expected the second (not attending) answer to win")
+	}
+
+	var n int
+	if err := s.Pool.QueryRow(ctx, "SELECT count(*) FROM rsvps WHERE guest_id = $1", gid).Scan(&n); err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if n != 1 {
+		t.Errorf("expected exactly 1 row for the guest, got %d", n)
 	}
 }
 

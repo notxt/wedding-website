@@ -6,7 +6,7 @@ Durable process notes for working on this repo. Read this first after a context 
 
 Wedding website for Michael Schoenfelder & Adrien Warner. Wedding is **Friday, September 25, 2026** in Santa Fe, NM (ceremony at the New Mexico Museum of Art, reception at Meow Wolf).
 
-It's a Go MPA. Most pages are public; **only the RSVP section is gated** behind a shared access code (env var, dev default in `.env.example`). Local-first now; AWS deployment via CloudFormation later.
+It's a Go MPA. Most pages are public; **only the RSVP section is gated** — by matching a guest's email against the `guests` invite list (seeded from a gitignored spreadsheet via `untracked/seed_guests.sql`; the signed cookie carries the guest id). Local-first now; AWS deployment via CloudFormation later.
 
 See `SPEC.md` for the architecture, route table, and data model.
 

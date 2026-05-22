@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"context"
-	"crypto/subtle"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,52 +19,95 @@ type AuthForm struct {
 }
 
 type RSVPFormView struct {
-	Attending      string
-	PartyNames     string
-	MealChoice     string
-	DairyAllergy   string
-	GlutenAllergy  string
-	OtherAllergies string
-	Errors         map[string]string
+	GuestName         string
+	PlusOneAllowed    bool
+	Attending         string
+	MealChoice        string
+	DairyAllergy      string
+	GlutenAllergy     string
+	OtherAllergies    string
+	PlusOneAttending  string
+	PlusOneName       string
+	PlusOneMealChoice string
+	Errors            map[string]string
 }
 
-func RSVP(t *templates.Set, signer *session.Signer) http.HandlerFunc {
+func RSVP(t *templates.Set, signer *session.Signer, st *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if rsvpAuthed(r, signer) {
-			t.Render(w, r, "rsvp.html", RSVPFormView{})
+		guestID, ok := guestIDFromCookie(r, signer)
+		if !ok {
+			t.Render(w, r, "rsvp-auth.html", AuthForm{})
 			return
 		}
-		t.Render(w, r, "rsvp-auth.html", AuthForm{})
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		guest, found, err := st.GetGuestByID(ctx, guestID)
+		if err != nil {
+			slog.Error("load guest failed", "err", err, "path", r.URL.Path)
+			RenderInternalError(t, w, r)
+			return
+		}
+		if !found {
+			clearAuthCookie(w, r)
+			t.Render(w, r, "rsvp-auth.html", AuthForm{})
+			return
+		}
+
+		view := RSVPFormView{GuestName: guest.FirstName, PlusOneAllowed: guest.PlusOneAllowed}
+		existing, hasRSVP, err := st.GetRSVPByGuestID(ctx, guestID)
+		if err != nil {
+			slog.Error("load rsvp failed", "err", err, "path", r.URL.Path)
+			RenderInternalError(t, w, r)
+			return
+		}
+		switch {
+		case hasRSVP:
+			view = fillViewFromRSVP(view, existing)
+		case guest.PlusOneName != nil:
+			view.PlusOneName = *guest.PlusOneName
+		}
+		t.Render(w, r, "rsvp.html", view)
 	}
 }
 
-func RSVPSubmit(t *templates.Set, st *store.Store) http.HandlerFunc {
+func RSVPSubmit(t *templates.Set, signer *session.Signer, st *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		guestID, ok := guestIDFromCookie(r, signer)
+		if !ok {
+			http.Redirect(w, r, "/rsvp", http.StatusSeeOther)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		guest, found, err := st.GetGuestByID(ctx, guestID)
+		if err != nil {
+			slog.Error("load guest failed", "err", err, "path", r.URL.Path)
+			RenderInternalError(t, w, r)
+			return
+		}
+		if !found {
+			http.Redirect(w, r, "/rsvp", http.StatusSeeOther)
+			return
+		}
+
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "bad form", http.StatusBadRequest)
 			return
 		}
-		rsvp, errs := validateRSVP(r.PostForm)
+		rsvp, view, errs := validateRSVP(r.PostForm, guest)
 		if len(errs) > 0 {
-			view := RSVPFormView{
-				Attending:      r.PostFormValue("attending"),
-				PartyNames:     r.PostFormValue("party_names"),
-				MealChoice:     r.PostFormValue("meal_choice"),
-				DairyAllergy:   r.PostFormValue("dairy_allergy"),
-				GlutenAllergy:  r.PostFormValue("gluten_allergy"),
-				OtherAllergies: r.PostFormValue("other_allergies"),
-				Errors:         errs,
-			}
+			view.Errors = errs
 			t.RenderStatus(w, r, "rsvp.html", http.StatusBadRequest, view)
 			return
 		}
+		rsvp.GuestID = guestID
 		if ip := clientIP(r); ip != "" {
 			rsvp.RemoteAddr = &ip
 		}
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-		defer cancel()
-		if _, err := st.InsertRSVP(ctx, rsvp); err != nil {
-			slog.Error("insert rsvp failed", "err", err, "path", r.URL.Path)
+		if _, err := st.UpsertRSVP(ctx, rsvp); err != nil {
+			slog.Error("upsert rsvp failed", "err", err, "path", r.URL.Path)
 			RenderInternalError(t, w, r)
 			return
 		}
@@ -78,20 +121,34 @@ func RSVPThanks(t *templates.Set) http.HandlerFunc {
 	}
 }
 
-func RSVPAuthSubmit(t *templates.Set, signer *session.Signer, accessCode string) http.HandlerFunc {
+func RSVPAuthSubmit(t *templates.Set, signer *session.Signer, st *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "bad form", http.StatusBadRequest)
 			return
 		}
-		code := r.PostFormValue("code")
-		if subtle.ConstantTimeCompare([]byte(code), []byte(accessCode)) != 1 {
-			t.RenderStatus(w, r, "rsvp-auth.html", http.StatusUnauthorized, AuthForm{Error: "Incorrect code. Please try again."})
+		email := normalizeEmail(r.PostFormValue("email"))
+		if email == "" {
+			t.RenderStatus(w, r, "rsvp-auth.html", http.StatusUnauthorized,
+				AuthForm{Error: "Please enter the email address from your invitation."})
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+		guest, found, err := st.GetGuestByEmail(ctx, email)
+		if err != nil {
+			slog.Error("guest lookup failed", "err", err, "path", r.URL.Path)
+			RenderInternalError(t, w, r)
+			return
+		}
+		if !found {
+			t.RenderStatus(w, r, "rsvp-auth.html", http.StatusUnauthorized,
+				AuthForm{Error: "We couldn't find that email on our guest list. Double-check the address, or get in touch and we'll sort it out."})
 			return
 		}
 		http.SetCookie(w, &http.Cookie{
 			Name:     "rsvp_auth",
-			Value:    signer.Sign("ok"),
+			Value:    signer.Sign(strconv.FormatInt(guest.ID, 10)),
 			Path:     "/rsvp",
 			MaxAge:   30 * 24 * 60 * 60,
 			HttpOnly: true,
@@ -102,9 +159,23 @@ func RSVPAuthSubmit(t *templates.Set, signer *session.Signer, accessCode string)
 	}
 }
 
-func validateRSVP(form url.Values) (store.RSVP, map[string]string) {
+// validateRSVP builds the store row and the re-render view from the posted form.
+// Plus-one fields are only honored when the guest is allowed one and is attending.
+func validateRSVP(form url.Values, guest store.Guest) (store.RSVP, RSVPFormView, map[string]string) {
 	errs := map[string]string{}
 	out := store.RSVP{}
+	view := RSVPFormView{
+		GuestName:         guest.FirstName,
+		PlusOneAllowed:    guest.PlusOneAllowed,
+		Attending:         form.Get("attending"),
+		MealChoice:        form.Get("meal_choice"),
+		DairyAllergy:      form.Get("dairy_allergy"),
+		GlutenAllergy:     form.Get("gluten_allergy"),
+		OtherAllergies:    form.Get("other_allergies"),
+		PlusOneAttending:  form.Get("plus_one_attending"),
+		PlusOneName:       form.Get("plus_one_name"),
+		PlusOneMealChoice: form.Get("plus_one_meal_choice"),
+	}
 
 	switch form.Get("attending") {
 	case "yes":
@@ -113,11 +184,6 @@ func validateRSVP(form url.Values) (store.RSVP, map[string]string) {
 		out.Attending = false
 	default:
 		errs["attending"] = "Please tell us if you'll be attending."
-	}
-
-	out.PartyNames = strings.TrimSpace(form.Get("party_names"))
-	if out.PartyNames == "" {
-		errs["party_names"] = "Please enter the names of everyone in your party."
 	}
 
 	if out.Attending {
@@ -133,9 +199,61 @@ func validateRSVP(form url.Values) (store.RSVP, map[string]string) {
 		if other := strings.TrimSpace(form.Get("other_allergies")); other != "" {
 			out.OtherAllergies = &other
 		}
+
+		if guest.PlusOneAllowed && form.Get("plus_one_attending") == "yes" {
+			out.PlusOneAttending = true
+			if name := strings.TrimSpace(form.Get("plus_one_name")); name != "" {
+				out.PlusOneName = &name
+			} else {
+				errs["plus_one_name"] = "Please enter your guest's name."
+			}
+			switch meal := form.Get("plus_one_meal_choice"); meal {
+			case "chicken", "vegetarian":
+				m := meal
+				out.PlusOneMealChoice = &m
+			default:
+				errs["plus_one_meal_choice"] = "Please choose a meal for your guest."
+			}
+		}
 	}
 
-	return out, errs
+	out.PartyNames = strings.TrimSpace(guest.FirstName + " " + guest.LastName)
+	if out.PlusOneAttending && out.PlusOneName != nil {
+		out.PartyNames += " + " + *out.PlusOneName
+	}
+
+	return out, view, errs
+}
+
+func fillViewFromRSVP(v RSVPFormView, r store.RSVP) RSVPFormView {
+	v.Attending = yesNo(r.Attending)
+	if r.MealChoice != nil {
+		v.MealChoice = *r.MealChoice
+	}
+	v.DairyAllergy = yesNo(r.DairyAllergy)
+	v.GlutenAllergy = yesNo(r.GlutenAllergy)
+	if r.OtherAllergies != nil {
+		v.OtherAllergies = *r.OtherAllergies
+	}
+	v.PlusOneAttending = yesNo(r.PlusOneAttending)
+	if r.PlusOneName != nil {
+		v.PlusOneName = *r.PlusOneName
+	}
+	if r.PlusOneMealChoice != nil {
+		v.PlusOneMealChoice = *r.PlusOneMealChoice
+	}
+	return v
+}
+
+func yesNo(b bool) string {
+	if b {
+		return "yes"
+	}
+	return "no"
+}
+
+func normalizeEmail(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
 }
 
 func clientIP(r *http.Request) string {
@@ -148,12 +266,29 @@ func clientIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-func rsvpAuthed(r *http.Request, s *session.Signer) bool {
+func guestIDFromCookie(r *http.Request, s *session.Signer) (int64, bool) {
 	c, err := r.Cookie("rsvp_auth")
-	if err != nil {
-		return false
+	if err != nil || !s.Verify(c.Value) {
+		return 0, false
 	}
-	return s.Verify(c.Value)
+	marker := c.Value[:strings.LastIndex(c.Value, ".")]
+	id, err := strconv.ParseInt(marker, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	return id, true
+}
+
+func clearAuthCookie(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "rsvp_auth",
+		Value:    "",
+		Path:     "/rsvp",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Secure:   requestIsHTTPS(r),
+	})
 }
 
 func requestIsHTTPS(r *http.Request) bool {

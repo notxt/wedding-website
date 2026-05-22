@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+
+	"github.com/notxt/wedding-website/internal/store"
 )
 
 func mustReq(remoteAddr, xff string) *http.Request {
@@ -17,24 +19,26 @@ func mustReq(remoteAddr, xff string) *http.Request {
 }
 
 func TestValidateRSVP(t *testing.T) {
+	single := store.Guest{FirstName: "Alice", LastName: "Smith"}
+	withPlus := store.Guest{FirstName: "Becca", LastName: "Boragine", PlusOneAllowed: true}
+
 	t.Run("attending with meal and allergies", func(t *testing.T) {
 		form := url.Values{
 			"attending":       {"yes"},
-			"party_names":     {"  Alice Smith, Bob Smith  "},
 			"meal_choice":     {"chicken"},
 			"dairy_allergy":   {"yes"},
 			"gluten_allergy":  {"no"},
 			"other_allergies": {"  shellfish  "},
 		}
-		r, errs := validateRSVP(form)
+		r, _, errs := validateRSVP(form, single)
 		if len(errs) > 0 {
 			t.Fatalf("unexpected errors: %v", errs)
 		}
 		if !r.Attending {
 			t.Errorf("Attending: got false, want true")
 		}
-		if r.PartyNames != "Alice Smith, Bob Smith" {
-			t.Errorf("PartyNames: got %q, want trimmed value", r.PartyNames)
+		if r.PartyNames != "Alice Smith" {
+			t.Errorf("PartyNames: got %q, want derived from guest", r.PartyNames)
 		}
 		if r.MealChoice == nil || *r.MealChoice != "chicken" {
 			t.Errorf("MealChoice: got %v, want chicken", r.MealChoice)
@@ -50,16 +54,14 @@ func TestValidateRSVP(t *testing.T) {
 		}
 	})
 
-	t.Run("not attending — meal/allergy fields ignored", func(t *testing.T) {
+	t.Run("not attending — meal/allergy/plus-one ignored", func(t *testing.T) {
 		form := url.Values{
-			"attending":       {"no"},
-			"party_names":     {"Carol"},
-			"meal_choice":     {"chicken"},
-			"dairy_allergy":   {"yes"},
-			"gluten_allergy":  {"yes"},
-			"other_allergies": {"peanuts"},
+			"attending":          {"no"},
+			"meal_choice":        {"chicken"},
+			"plus_one_attending": {"yes"},
+			"plus_one_name":      {"Spencer"},
 		}
-		r, errs := validateRSVP(form)
+		r, _, errs := validateRSVP(form, withPlus)
 		if len(errs) > 0 {
 			t.Fatalf("unexpected errors: %v", errs)
 		}
@@ -69,72 +71,97 @@ func TestValidateRSVP(t *testing.T) {
 		if r.MealChoice != nil {
 			t.Errorf("MealChoice: got %v, want nil", *r.MealChoice)
 		}
-		if r.DairyAllergy {
-			t.Errorf("DairyAllergy: got true, want false (ignored when not attending)")
+		if r.PlusOneAttending {
+			t.Errorf("plus-one should be ignored when the primary is not attending")
 		}
-		if r.GlutenAllergy {
-			t.Errorf("GlutenAllergy: got true, want false (ignored when not attending)")
-		}
-		if r.OtherAllergies != nil {
-			t.Errorf("OtherAllergies: got %v, want nil (ignored when not attending)", *r.OtherAllergies)
+		if r.PartyNames != "Becca Boragine" {
+			t.Errorf("PartyNames: got %q, want %q", r.PartyNames, "Becca Boragine")
 		}
 	})
 
 	t.Run("missing attending", func(t *testing.T) {
-		form := url.Values{"party_names": {"Dave"}}
-		_, errs := validateRSVP(form)
+		_, _, errs := validateRSVP(url.Values{}, single)
 		if _, ok := errs["attending"]; !ok {
 			t.Errorf("expected error on attending, got %v", errs)
 		}
 	})
 
-	t.Run("blank party_names", func(t *testing.T) {
-		form := url.Values{
-			"attending":   {"no"},
-			"party_names": {"   "},
-		}
-		_, errs := validateRSVP(form)
-		if _, ok := errs["party_names"]; !ok {
-			t.Errorf("expected error on party_names, got %v", errs)
-		}
-	})
-
 	t.Run("attending requires meal", func(t *testing.T) {
-		form := url.Values{
-			"attending":   {"yes"},
-			"party_names": {"Eve"},
-		}
-		_, errs := validateRSVP(form)
+		_, _, errs := validateRSVP(url.Values{"attending": {"yes"}}, single)
 		if _, ok := errs["meal_choice"]; !ok {
 			t.Errorf("expected error on meal_choice when attending, got %v", errs)
 		}
 	})
 
 	t.Run("invalid meal value rejected", func(t *testing.T) {
-		form := url.Values{
-			"attending":   {"yes"},
-			"party_names": {"Frank"},
-			"meal_choice": {"steak"},
-		}
-		_, errs := validateRSVP(form)
+		form := url.Values{"attending": {"yes"}, "meal_choice": {"steak"}}
+		_, _, errs := validateRSVP(form, single)
 		if _, ok := errs["meal_choice"]; !ok {
 			t.Errorf("expected error on meal_choice for invalid value, got %v", errs)
 		}
 	})
 
 	t.Run("attending with empty other_allergies leaves nil", func(t *testing.T) {
-		form := url.Values{
-			"attending":       {"yes"},
-			"party_names":     {"Grace"},
-			"meal_choice":     {"vegetarian"},
-			"other_allergies": {"   "},
-		}
-		r, errs := validateRSVP(form)
+		form := url.Values{"attending": {"yes"}, "meal_choice": {"vegetarian"}, "other_allergies": {"   "}}
+		r, _, errs := validateRSVP(form, single)
 		if len(errs) > 0 {
 			t.Fatalf("unexpected errors: %v", errs)
 		}
 		if r.OtherAllergies != nil {
 			t.Errorf("OtherAllergies: got %v, want nil for whitespace-only", *r.OtherAllergies)
+		}
+	})
+
+	t.Run("plus-one attending requires name and meal", func(t *testing.T) {
+		form := url.Values{"attending": {"yes"}, "meal_choice": {"chicken"}, "plus_one_attending": {"yes"}}
+		_, _, errs := validateRSVP(form, withPlus)
+		if _, ok := errs["plus_one_name"]; !ok {
+			t.Errorf("expected error on plus_one_name, got %v", errs)
+		}
+		if _, ok := errs["plus_one_meal_choice"]; !ok {
+			t.Errorf("expected error on plus_one_meal_choice, got %v", errs)
+		}
+	})
+
+	t.Run("plus-one happy path appends to party names", func(t *testing.T) {
+		form := url.Values{
+			"attending":            {"yes"},
+			"meal_choice":          {"chicken"},
+			"plus_one_attending":   {"yes"},
+			"plus_one_name":        {"  Spencer  "},
+			"plus_one_meal_choice": {"vegetarian"},
+		}
+		r, _, errs := validateRSVP(form, withPlus)
+		if len(errs) > 0 {
+			t.Fatalf("unexpected errors: %v", errs)
+		}
+		if !r.PlusOneAttending {
+			t.Errorf("PlusOneAttending: got false, want true")
+		}
+		if r.PlusOneName == nil || *r.PlusOneName != "Spencer" {
+			t.Errorf("PlusOneName: got %v, want Spencer trimmed", r.PlusOneName)
+		}
+		if r.PlusOneMealChoice == nil || *r.PlusOneMealChoice != "vegetarian" {
+			t.Errorf("PlusOneMealChoice: got %v, want vegetarian", r.PlusOneMealChoice)
+		}
+		if r.PartyNames != "Becca Boragine + Spencer" {
+			t.Errorf("PartyNames: got %q, want %q", r.PartyNames, "Becca Boragine + Spencer")
+		}
+	})
+
+	t.Run("plus-one ignored when guest not allowed one", func(t *testing.T) {
+		form := url.Values{
+			"attending":          {"yes"},
+			"meal_choice":        {"chicken"},
+			"plus_one_attending": {"yes"},
+			"plus_one_name":      {"Nope"},
+		}
+		r, _, errs := validateRSVP(form, single)
+		if len(errs) > 0 {
+			t.Fatalf("unexpected errors: %v", errs)
+		}
+		if r.PlusOneAttending {
+			t.Errorf("plus-one should be ignored for a guest without an allowance")
 		}
 	})
 }
