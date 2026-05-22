@@ -1,11 +1,12 @@
 {{ define "title" }}RSVP &middot; Michael &amp; Adrien{{ end }}
 {{ define "content" }}
 <h1>RSVP</h1>
-<p>This section is private. Please enter the access code from your invitation to continue.</p>
+<p>Please enter the email address where you received your invitation to find your RSVP.</p>
 {{ with .Data }}{{ if .Error }}<p role="alert">{{ .Error }}</p>{{ end }}{{ end }}
 <form method="post" action="/rsvp/auth">
-<label for="code">Access code</label>
-<input type="text" id="code" name="code" autocomplete="off" autocapitalize="none" spellcheck="false" required>
+<label for="email">Email address</label>
+<input type="email" id="email" name="email" autocomplete="email" autocapitalize="none" spellcheck="false" required>
 <button type="submit">Continue</button>
 </form>
+<p>Trouble finding your invitation? <a href="/contact/get-in-touch">Get in touch</a> and we'll help.</p>
 {{ end }}

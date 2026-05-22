@@ -87,9 +87,9 @@ func main() {
 
 	signer := session.New(cfg.SessionSecret)
 	authMW := &middleware.Auth{Signer: signer}
-	mux.HandleFunc("GET /rsvp", handlers.RSVP(tmpls, signer))
-	mux.HandleFunc("POST /rsvp/auth", handlers.RSVPAuthSubmit(tmpls, signer, cfg.AccessCode))
-	mux.Handle("POST /rsvp", authMW.RequireRSVPAuth(handlers.RSVPSubmit(tmpls, st)))
+	mux.HandleFunc("GET /rsvp", handlers.RSVP(tmpls, signer, st))
+	mux.HandleFunc("POST /rsvp/auth", handlers.RSVPAuthSubmit(tmpls, signer, st))
+	mux.Handle("POST /rsvp", authMW.RequireRSVPAuth(handlers.RSVPSubmit(tmpls, signer, st)))
 	mux.Handle("GET /rsvp/thanks", authMW.RequireRSVPAuth(handlers.RSVPThanks(tmpls)))
 
 	var handler http.Handler = mux

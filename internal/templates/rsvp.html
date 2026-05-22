@@ -2,49 +2,66 @@
 {{ define "content" }}
 {{ with .Data }}
 <style>
-.rsvp-meal { display: none; }
-form.rsvp:has(input[name="attending"][value="yes"]:checked) .rsvp-meal { display: flex; }
+.rsvp-when, .rsvp-plus-one, .rsvp-plus-one-meal { display: none; }
+form.rsvp:has(input[name="attending"][value="yes"]:checked) .rsvp-when { display: flex; }
+form.rsvp:has(input[name="attending"][value="yes"]:checked) .rsvp-plus-one { display: flex; }
+form.rsvp:has(input[name="attending"][value="yes"]:checked):has(input[name="plus_one_attending"][value="yes"]:checked) .rsvp-plus-one-meal { display: flex; }
 </style>
 <h1>RSVP</h1>
-<p>Please respond by August 1, 2026. If your party includes more than one person, fill in everyone's name below — one form per party is enough.</p>
+<p>{{ if .GuestName }}Welcome, {{ .GuestName }}! {{ end }}Please respond by August 1, 2026.</p>
 
 <form class="rsvp" method="post" action="/rsvp" novalidate>
 <fieldset>
 <legend>Will you be attending?</legend>
-<label><input type="radio" name="attending" value="yes" {{ if eq .Attending "yes" }}checked{{ end }} required> Yes, we'll be there</label>
-<label><input type="radio" name="attending" value="no" {{ if eq .Attending "no" }}checked{{ end }}> No, we can't make it</label>
+<label><input type="radio" name="attending" value="yes" {{ if eq .Attending "yes" }}checked{{ end }} required> Yes, I'll be there</label>
+<label><input type="radio" name="attending" value="no" {{ if eq .Attending "no" }}checked{{ end }}> No, I can't make it</label>
 {{ with index .Errors "attending" }}<p role="alert">{{ . }}</p>{{ end }}
 </fieldset>
 
-<label>
-Names of party
-<textarea name="party_names" required>{{ .PartyNames }}</textarea>
-</label>
-{{ with index .Errors "party_names" }}<p role="alert">{{ . }}</p>{{ end }}
-
-<fieldset class="rsvp-meal">
+<fieldset class="rsvp-when">
 <legend>Meal preference</legend>
 <label><input type="radio" name="meal_choice" value="chicken" {{ if eq .MealChoice "chicken" }}checked{{ end }}> Chicken</label>
 <label><input type="radio" name="meal_choice" value="vegetarian" {{ if eq .MealChoice "vegetarian" }}checked{{ end }}> Vegetarian</label>
 {{ with index .Errors "meal_choice" }}<p role="alert">{{ . }}</p>{{ end }}
 </fieldset>
 
-<fieldset>
+<fieldset class="rsvp-when">
 <legend>Dairy allergy?</legend>
 <label><input type="radio" name="dairy_allergy" value="yes" {{ if eq .DairyAllergy "yes" }}checked{{ end }}> Yes</label>
 <label><input type="radio" name="dairy_allergy" value="no" {{ if or (eq .DairyAllergy "no") (eq .DairyAllergy "") }}checked{{ end }}> No</label>
 </fieldset>
 
-<fieldset>
+<fieldset class="rsvp-when">
 <legend>Gluten allergy?</legend>
 <label><input type="radio" name="gluten_allergy" value="yes" {{ if eq .GlutenAllergy "yes" }}checked{{ end }}> Yes</label>
 <label><input type="radio" name="gluten_allergy" value="no" {{ if or (eq .GlutenAllergy "no") (eq .GlutenAllergy "") }}checked{{ end }}> No</label>
 </fieldset>
 
-<label>
+<label class="rsvp-when">
 Other allergies (optional)
 <textarea name="other_allergies">{{ .OtherAllergies }}</textarea>
 </label>
+
+{{ if .PlusOneAllowed }}
+<fieldset class="rsvp-plus-one">
+<legend>Bringing a guest?</legend>
+<label><input type="radio" name="plus_one_attending" value="yes" {{ if eq .PlusOneAttending "yes" }}checked{{ end }}> Yes, I'm bringing a guest</label>
+<label><input type="radio" name="plus_one_attending" value="no" {{ if or (eq .PlusOneAttending "no") (eq .PlusOneAttending "") }}checked{{ end }}> No, just me</label>
+</fieldset>
+
+<label class="rsvp-plus-one-meal">
+Guest's name
+<input type="text" name="plus_one_name" value="{{ .PlusOneName }}" autocomplete="off">
+</label>
+{{ with index .Errors "plus_one_name" }}<p role="alert">{{ . }}</p>{{ end }}
+
+<fieldset class="rsvp-plus-one-meal">
+<legend>Guest's meal preference</legend>
+<label><input type="radio" name="plus_one_meal_choice" value="chicken" {{ if eq .PlusOneMealChoice "chicken" }}checked{{ end }}> Chicken</label>
+<label><input type="radio" name="plus_one_meal_choice" value="vegetarian" {{ if eq .PlusOneMealChoice "vegetarian" }}checked{{ end }}> Vegetarian</label>
+{{ with index .Errors "plus_one_meal_choice" }}<p role="alert">{{ . }}</p>{{ end }}
+</fieldset>
+{{ end }}
 
 <button type="submit">Submit RSVP</button>
 </form>
