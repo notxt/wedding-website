@@ -14,43 +14,36 @@
 
 .hNav {
   position: absolute; top: 0; left: 0; right: 0;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 22px 36px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 18px 36px;
   z-index: 8;
+  background: #000;
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.85);
   font-family: 'Playfair Display', Georgia, serif;
-}
-.hNav-mark {
-  display: block;
-  width: auto;
-  height: 64px;
 }
 .hNav-links {
   display: flex; gap: 28px; align-items: center;
 }
 .hNav-links a {
-  font-size: 11px;
-  letter-spacing: 0.32em;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: normal;
+  font-weight: 400;
+  font-size: clamp(13px, 1.1vw, 16px);
+  letter-spacing: normal;
   text-transform: uppercase;
   text-decoration: none;
   color: inherit;
   border: 0;
-  opacity: 0.7;
+  opacity: 0.78;
   transition: opacity .2s;
 }
 .hNav-links a:hover { opacity: 1; }
-.hNav-rsvp {
-  border: 1px solid currentColor;
-  padding: 9px 16px;
-  border-radius: 999px;
-  opacity: 1 !important;
-}
 
 .heroE {
   --hE-ink: #f4e8d0;
   --hE-ink-dim: rgba(244, 232, 208, 0.62);
   --hE-paper: #02030a;
   position: relative;
-  min-height: 190vh;
   overflow: hidden;
   background: var(--hE-paper);
   color: var(--hE-ink);
@@ -88,27 +81,6 @@
   height: clamp(140px, 18vw, 240px);
   z-index: 3;
   pointer-events: none;
-}
-
-.heroE-edge {
-  position: absolute;
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 11px;
-  letter-spacing: 0.36em;
-  text-transform: uppercase;
-  color: var(--hE-ink);
-  opacity: 0.7;
-  z-index: 6;
-}
-.heroE-edge-tl { top: 90px; left: 36px; }
-.heroE-edge-tr { top: 90px; right: 36px; }
-.heroE-edge-rot {
-  top: 50%;
-  left: 18px;
-  transform: translateY(-50%) rotate(-90deg);
-  transform-origin: left center;
-  white-space: nowrap;
-  opacity: 0.55;
 }
 
 .heroE-stage {
@@ -177,38 +149,38 @@
   font-weight: 900;
   font-style: italic;
   font-synthesis: none;
-  font-size: clamp(96px, 17vw, 280px);
+  font-size: clamp(88px, 14vw, 184px);
   line-height: 0.92;
   letter-spacing: 0.02em;
   display: inline-block;
   text-align: center;
-}
-.heroE-word-outline {
-  color: transparent;
-  -webkit-text-stroke: 1.6px var(--hE-ink);
-  text-shadow: 0 2px 32px rgba(0, 0, 0, 0.55);
-}
-.heroE-word-fill {
   color: var(--hE-ink);
-  font-style: italic;
-  letter-spacing: 0.02em;
-  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.55);
+  opacity: 0.55;
+  text-shadow:
+    0 0 8px rgba(253, 243, 220, 0.55),
+    0 0 28px rgba(246, 231, 200, 0.45),
+    0 0 64px rgba(216, 164, 143, 0.32);
 }
 
 .heroE-row-mid {
   margin: -0.36em 0;
 }
 .heroE-amp {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Playfair Display 900 Italic', 'Playfair Display', Georgia, serif;
+  font-weight: 900;
   font-style: italic;
-  font-weight: 400;
-  font-size: clamp(120px, 15vw, 240px);
+  font-synthesis: none;
+  font-size: clamp(74px, 12vw, 158px);
   line-height: 1;
   color: var(--hE-ink);
   display: block;
   margin: 0;
   padding: 0 0.05em;
-  opacity: 0.92;
+  opacity: 0.55;
+  text-shadow:
+    0 0 8px rgba(253, 243, 220, 0.55),
+    0 0 28px rgba(246, 231, 200, 0.45),
+    0 0 64px rgba(216, 164, 143, 0.32);
 }
 
 .heroE-zone-invite {
@@ -216,15 +188,47 @@
 }
 
 .heroE-divider-moon {
-  width: auto;
+  --moon: clamp(46px, 6vw, 64px);
+  width: var(--moon);
+  height: var(--moon);
+  border-radius: 50%;
+  box-sizing: border-box;
   margin: clamp(20px, 4vh, 56px) auto;
-  opacity: 1;
+  background: #241a4a;
+  animation: heroE-moonphase 30s linear infinite;
+  filter:
+    drop-shadow(0 0 6px rgba(253, 243, 220, 0.6))
+    drop-shadow(0 0 20px rgba(246, 231, 200, 0.42))
+    drop-shadow(0 0 46px rgba(216, 164, 143, 0.28));
 }
-.heroE-moon {
-  display: block;
-  width: clamp(200px, 26vw, 360px);
-  height: clamp(200px, 26vw, 360px);
-  pointer-events: none;
+/* Symmetric sweep: full moon at both ends (offset magnitude > width = fully lit),
+   new moon dead-centre at 50% (zero offset = no inset fill). Ends match, so the
+   loop is seamless and the waxing half mirrors the waning half. */
+@keyframes heroE-moonphase {
+  0%   { box-shadow: calc(var(--moon) * -1.3) 0 0 0 #fdf3dc inset; }
+  100% { box-shadow: calc(var(--moon) *  1.3) 0 0 0 #fdf3dc inset; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heroE-divider-moon {
+    animation: none;
+    box-shadow: calc(var(--moon) * -0.55) 0 0 0 #fdf3dc inset;
+  }
+  .heroE-twinkle { animation: none; }
+}
+
+/* Background-star twinkle: a subset of stars (and all the bright feature stars)
+   get this class. Each one has its own animation-duration and animation-delay
+   inline so the field shimmers asynchronously. */
+.heroE-twinkle {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation-name: heroE-twinkle;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+@keyframes heroE-twinkle {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(0.4); }
 }
 
 .heroE-zone-invite .heroE-mood {
@@ -353,9 +357,10 @@
 }
 
 @media (max-width: 720px) {
-  .heroE-stage { padding: 120px 18px 90px; gap: 60px; }
-  .heroE-edge-tl, .heroE-edge-tr { font-size: 9px; letter-spacing: 0.24em; }
-  .heroE-edge-rot { display: none; }
+  .heroE-stage { padding: 160px 18px 90px; gap: 60px; }
+  .hNav { padding: 14px 18px; }
+  .hNav-links { flex-wrap: wrap; justify-content: center; gap: 8px 16px; }
+  .hNav-links a { font-size: 13px; }
   .heroE-mood { letter-spacing: 0.32em; white-space: normal; max-width: 28ch; margin: 0 auto; }
   .heroE-when { flex-direction: column; gap: 10px; }
   .heroE-schedule { flex-direction: column; gap: 24px; }
