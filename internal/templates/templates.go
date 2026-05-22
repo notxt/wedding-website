@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strings"
 )
 
 //go:embed *.html
@@ -19,6 +20,7 @@ type Set struct {
 type pageView struct {
 	Active string
 	Data   any
+	Stars  template.HTML
 }
 
 var homeStars = renderStars()
@@ -43,14 +45,17 @@ func Load() (*Set, error) {
 	}
 	partials := []string{
 		"layout.html",
+		"site-sky.html",
+		"site-nav.html",
 		"home-hero.html",
 		"home-hero-sky.html",
 		"home-hero-mountain.html",
 		"home-hero-moon.html",
 	}
+	funcs := template.FuncMap{"hasPrefix": strings.HasPrefix}
 	pages := make(map[string]*template.Template, len(pageNames))
 	for _, name := range pageNames {
-		t, err := template.ParseFS(files, append(partials, name)...)
+		t, err := template.New(name).Funcs(funcs).ParseFS(files, append(partials, name)...)
 		if err != nil {
 			return nil, fmt.Errorf("parse %s: %w", name, err)
 		}
@@ -74,7 +79,7 @@ func (s *Set) RenderStatus(w http.ResponseWriter, r *http.Request, name string, 
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	view := pageView{Active: r.URL.Path, Data: data}
+	view := pageView{Active: r.URL.Path, Data: data, Stars: homeStars}
 	var buf bytes.Buffer
 	if err := t.ExecuteTemplate(&buf, "layout.html", view); err != nil {
 		slog.Error("template execute failed", "name", name, "path", r.URL.Path, "err", err)
