@@ -12,32 +12,13 @@
    and a layered Sangre de Cristo silhouette grounding the bottom.
    ====================================================================== */
 
-.hNav {
-  position: absolute; top: 0; left: 0; right: 0;
-  display: flex; align-items: center; justify-content: center;
-  padding: 18px 36px;
-  z-index: 8;
-  background: #000;
-  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.85);
-  font-family: 'Playfair Display', Georgia, serif;
+/* The shared top nav (.siteNav, styled in main.css) overlays the hero on home. */
+.heroE .siteNav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
 }
-.hNav-links {
-  display: flex; gap: 28px; align-items: center;
-}
-.hNav-links a {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-style: normal;
-  font-weight: 400;
-  font-size: clamp(13px, 1.1vw, 16px);
-  letter-spacing: normal;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: inherit;
-  border: 0;
-  opacity: 0.78;
-  transition: opacity .2s;
-}
-.hNav-links a:hover { opacity: 1; }
 
 .heroE {
   --hE-ink: #f4e8d0;
@@ -50,7 +31,6 @@
   font-family: 'Playfair Display', Georgia, serif;
   display: flex; flex-direction: column;
 }
-.heroE .hNav { color: var(--hE-ink); }
 
 .heroE-sky {
   position: absolute; inset: 0; z-index: 0;
@@ -358,9 +338,6 @@
 
 @media (max-width: 720px) {
   .heroE-stage { padding: 160px 18px 90px; gap: 60px; }
-  .hNav { padding: 14px 18px; }
-  .hNav-links { flex-wrap: wrap; justify-content: center; gap: 8px 16px; }
-  .hNav-links a { font-size: 13px; }
   .heroE-mood { letter-spacing: 0.32em; white-space: normal; max-width: 28ch; margin: 0 auto; }
   .heroE-when { flex-direction: column; gap: 10px; }
   .heroE-schedule { flex-direction: column; gap: 24px; }

@@ -1,0 +1,29 @@
+{{ define "site-sky" }}
+<svg class="siteSky-fx" viewBox="0 0 1400 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+<defs>
+<radialGradient id="sE-neb-violet" cx="50%" cy="50%" r="50%">
+<stop offset="0%" stop-color="#3d1e6e" stop-opacity="0.32"/>
+<stop offset="100%" stop-color="#3d1e6e" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="sE-neb-blue" cx="50%" cy="50%" r="50%">
+<stop offset="0%" stop-color="#162a6e" stop-opacity="0.30"/>
+<stop offset="100%" stop-color="#162a6e" stop-opacity="0"/>
+</radialGradient>
+<linearGradient id="sE-milky" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#cbb89a" stop-opacity="0"/>
+<stop offset="45%" stop-color="#cbb89a" stop-opacity="0.04"/>
+<stop offset="60%" stop-color="#9a7fb8" stop-opacity="0.05"/>
+<stop offset="100%" stop-color="#cbb89a" stop-opacity="0"/>
+</linearGradient>
+<filter id="sE-soft" x="-20%" y="-20%" width="140%" height="140%">
+<feGaussianBlur stdDeviation="14"/>
+</filter>
+</defs>
+<ellipse cx="320" cy="420" rx="540" ry="360" fill="url(#sE-neb-violet)"/>
+<ellipse cx="700" cy="220" rx="520" ry="260" fill="url(#sE-neb-blue)"/>
+<g filter="url(#sE-soft)" opacity="0.85">
+<path d="M -100,800 L 1500,80 L 1500,180 L -100,900 Z" fill="url(#sE-milky)"/>
+</g>
+{{ .Stars }}
+</svg>
+{{ end }}
