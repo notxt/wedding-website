@@ -1,7 +1,7 @@
 {{ define "title" }}RSVP &middot; Michael &amp; Adrien{{ end }}
 {{ define "content" }}
 <h1>RSVP</h1>
-<p>Please enter the email address where you received your invitation to find your RSVP.</p>
+<p>Please enter your email address. It should be the same address you used to reply to our Save the Date.</p>
 {{ with .Data }}{{ if .Error }}<p role="alert">{{ .Error }}</p>{{ end }}{{ end }}
 <form method="post" action="/rsvp/auth">
 <label for="email">Email address</label>
