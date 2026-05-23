@@ -89,6 +89,19 @@ It drops you into a bash shell at `/workspace` (the repo, bind-mounted), with a 
 
 **Container detection:** `WEDDING_DEV_CONTAINER=1` is set inside the container. Scripts can branch on it: `[ -n "${WEDDING_DEV_CONTAINER:-}" ]`.
 
+**Database access (prod):** the prod RDS is private (no public access, no Data API — it's a plain RDS instance, not Aurora), so reach it via an SSM port-forward through the app EC2 instance. `bin/db-tunnel.sh` does this end-to-end — it resolves the instance + DB facts, opens the tunnel, and runs `psql`:
+
+```bash
+./bin/db-tunnel.sh -c "select count(*) from rsvps;"   # one-shot, prints to stdout
+./bin/db-tunnel.sh -f report.sql                       # run a file
+echo "select * from guests;" | ./bin/db-tunnel.sh      # SQL from stdin
+./bin/db-tunnel.sh                                     # interactive psql (on a TTY)
+```
+
+It's **read-only by default** (so an agent can't accidentally mutate the guest list); pass `--write` to allow writes. Notes:
+- The container ships `session-manager-plugin`, but it only lands after a **host image rebuild** (`docker compose build dev`, or the next `./bin/dev.sh`). Until then the script errors with a hint.
+- The connecting AWS identity needs `ssm:StartSession` on the instance + the `AWS-StartPortForwardingSessionToRemoteHost` document, and `secretsmanager:GetSecretValue` on the RDS master secret. Creds come from that master secret today; the script isolates credential fetching so a later move to RDS IAM auth is a one-function change.
+
 **Trust boundary:** the only host paths visible inside the container are:
 - the repo (read-write — Claude needs to edit it)
 - `~/.claude` and `~/.claude.json` (read-write — preserves your Claude Code login + settings)

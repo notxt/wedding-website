@@ -40,6 +40,16 @@ RUN case "$(uname -m)" in \
  && /tmp/aws/install \
  && rm -rf /tmp/aws /tmp/aws.zip
 
+# SSM Session Manager plugin: lets `aws ssm start-session` (e.g. bin/db-tunnel.sh)
+# port-forward to the private RDS instance through the app EC2 box.
+RUN case "$(uname -m)" in \
+      x86_64)  SMARCH=64 ;; \
+      aarch64) SMARCH=arm64 ;; \
+      *) echo "unsupported arch: $(uname -m)" >&2; exit 1 ;; \
+    esac \
+ && dnf install -y "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_${SMARCH}/session-manager-plugin.rpm" \
+ && dnf clean all
+
 RUN dnf install -y dnf-plugins-core \
  && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo \
  && dnf install -y gh \
