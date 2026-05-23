@@ -33,7 +33,7 @@ Guest's name
 {{ end }}
 
 <fieldset class="rsvp-when">
-<legend>Meal preference</legend>
+<legend>Your meal preference</legend>
 <label><input type="radio" name="meal_choice" value="chicken" {{ if eq .MealChoice "chicken" }}checked{{ end }}> Chicken</label>
 <label><input type="radio" name="meal_choice" value="vegetarian" {{ if eq .MealChoice "vegetarian" }}checked{{ end }}> Vegetarian</label>
 {{ with index .Errors "meal_choice" }}<p role="alert">{{ . }}</p>{{ end }}
