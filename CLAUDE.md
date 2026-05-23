@@ -83,7 +83,7 @@ This is a thin wrapper around `docker compose run --rm --service-ports dev`. The
 
 It drops you into a bash shell at `/workspace` (the repo, bind-mounted), with a sibling `postgres` service reachable at `postgres:5432`.
 
-**AWS credentials**: the host `~/.aws` is mounted read-only at `/home/dev/.aws`. Authenticate on the host (`aws login`); the container's own AWS CLI then resolves the profile and mints short-lived creds from the cached login session, refreshing them itself as they expire. No env vars to wrangle, and the region rides along from `~/.aws/config`. When the login session itself expires, re-run `aws login` on the host.
+**AWS credentials**: authenticate on the host (`aws login`); the container's own AWS CLI then resolves the profile and mints short-lived creds from the cached login session, refreshing them itself as they expire. No env vars to wrangle, and the region rides along from `~/.aws/config`. When the login session itself expires, re-run `aws login` on the host. Mechanically, `~/.aws` is mounted in two pieces: `~/.aws/config` **read-only** (the host's config can't be tampered with from inside the container), and `~/.aws/login` **read-write** (shared live with the host). The read-write `login` mount is required, not incidental: an `aws login` session rotates its refresh token on every refresh and rewrites `~/.aws/login/cache`, so host and container *must* share the one cache file — a read-only mount breaks every `aws` call, and a snapshot/copy would invalidate the host's login the first time either side refreshes.
 
 **GitHub App key** is mounted read-only from `${CLAUDE_GH_APP_DIR:-../claude_gh_app}` (relative to the repo root). The container fetches a fresh installation token on every `git push` via a credential helper — no token wrangling needed.
 
@@ -106,7 +106,7 @@ It's **read-only by default** (so an agent can't accidentally mutate the guest l
 - the repo (read-write — Claude needs to edit it)
 - `~/.claude` and `~/.claude.json` (read-write — preserves your Claude Code login + settings)
 - the GH App key dir (read-only)
-- `~/.aws` (read-only — lets the container's AWS CLI use the host login session)
+- `~/.aws/config` (read-only — the container's AWS CLI reads the profile but can't inject a `credential_process` into the host's config) and `~/.aws/login` (read-write — the shared, rotating credential cache the CLI must rewrite to refresh)
 
 No docker socket. No host network. Runs as a non-root `dev` user. This is the boundary that makes `--dangerously-skip-permissions` acceptable.
 

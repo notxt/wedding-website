@@ -10,7 +10,8 @@ services:
       - ${HOME}/.claude:/home/dev/.claude
       - ${HOME}/.claude.json:/home/dev/.claude.json
       - ${CLAUDE_GH_APP_DIR:-../claude_gh_app}:/run/secrets/gh:ro
-      - ${HOME}/.aws:/home/dev/.aws:ro
+      - ${HOME}/.aws/config:/home/dev/.aws/config:ro
+      - ${HOME}/.aws/login:/home/dev/.aws/login
     environment:
       WEDDING_DEV_CONTAINER: "1"
       GH_APP_ID: "3590597"
