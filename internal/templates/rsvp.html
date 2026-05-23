@@ -18,12 +18,35 @@ form.rsvp:has(input[name="attending"][value="yes"]:checked):has(input[name="plus
 {{ with index .Errors "attending" }}<p role="alert">{{ . }}</p>{{ end }}
 </fieldset>
 
+{{ if .PlusOneAllowed }}
+<fieldset class="rsvp-plus-one">
+<legend>Bringing a guest?</legend>
+<label><input type="radio" name="plus_one_attending" value="yes" {{ if eq .PlusOneAttending "yes" }}checked{{ end }}> Yes, I'm bringing a guest</label>
+<label><input type="radio" name="plus_one_attending" value="no" {{ if or (eq .PlusOneAttending "no") (eq .PlusOneAttending "") }}checked{{ end }}> No, just me</label>
+</fieldset>
+
+<label class="rsvp-plus-one-meal">
+Guest's name
+<input type="text" name="plus_one_name" value="{{ .PlusOneName }}" autocomplete="off">
+</label>
+{{ with index .Errors "plus_one_name" }}<p role="alert">{{ . }}</p>{{ end }}
+{{ end }}
+
 <fieldset class="rsvp-when">
 <legend>Meal preference</legend>
 <label><input type="radio" name="meal_choice" value="chicken" {{ if eq .MealChoice "chicken" }}checked{{ end }}> Chicken</label>
 <label><input type="radio" name="meal_choice" value="vegetarian" {{ if eq .MealChoice "vegetarian" }}checked{{ end }}> Vegetarian</label>
 {{ with index .Errors "meal_choice" }}<p role="alert">{{ . }}</p>{{ end }}
 </fieldset>
+
+{{ if .PlusOneAllowed }}
+<fieldset class="rsvp-plus-one-meal">
+<legend>Guest's meal preference</legend>
+<label><input type="radio" name="plus_one_meal_choice" value="chicken" {{ if eq .PlusOneMealChoice "chicken" }}checked{{ end }}> Chicken</label>
+<label><input type="radio" name="plus_one_meal_choice" value="vegetarian" {{ if eq .PlusOneMealChoice "vegetarian" }}checked{{ end }}> Vegetarian</label>
+{{ with index .Errors "plus_one_meal_choice" }}<p role="alert">{{ . }}</p>{{ end }}
+</fieldset>
+{{ end }}
 
 <fieldset class="rsvp-when">
 <legend>Dairy allergy?</legend>
@@ -41,27 +64,6 @@ form.rsvp:has(input[name="attending"][value="yes"]:checked):has(input[name="plus
 Other allergies (optional)
 <textarea name="other_allergies">{{ .OtherAllergies }}</textarea>
 </label>
-
-{{ if .PlusOneAllowed }}
-<fieldset class="rsvp-plus-one">
-<legend>Bringing a guest?</legend>
-<label><input type="radio" name="plus_one_attending" value="yes" {{ if eq .PlusOneAttending "yes" }}checked{{ end }}> Yes, I'm bringing a guest</label>
-<label><input type="radio" name="plus_one_attending" value="no" {{ if or (eq .PlusOneAttending "no") (eq .PlusOneAttending "") }}checked{{ end }}> No, just me</label>
-</fieldset>
-
-<label class="rsvp-plus-one-meal">
-Guest's name
-<input type="text" name="plus_one_name" value="{{ .PlusOneName }}" autocomplete="off">
-</label>
-{{ with index .Errors "plus_one_name" }}<p role="alert">{{ . }}</p>{{ end }}
-
-<fieldset class="rsvp-plus-one-meal">
-<legend>Guest's meal preference</legend>
-<label><input type="radio" name="plus_one_meal_choice" value="chicken" {{ if eq .PlusOneMealChoice "chicken" }}checked{{ end }}> Chicken</label>
-<label><input type="radio" name="plus_one_meal_choice" value="vegetarian" {{ if eq .PlusOneMealChoice "vegetarian" }}checked{{ end }}> Vegetarian</label>
-{{ with index .Errors "plus_one_meal_choice" }}<p role="alert">{{ . }}</p>{{ end }}
-</fieldset>
-{{ end }}
 
 <button type="submit">Submit RSVP</button>
 </form>
