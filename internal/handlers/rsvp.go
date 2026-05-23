@@ -32,6 +32,18 @@ type RSVPFormView struct {
 	Errors            map[string]string
 }
 
+type RSVPConfirmationView struct {
+	GuestName         string
+	Attending         bool
+	MealChoice        string
+	DairyAllergy      bool
+	GlutenAllergy     bool
+	OtherAllergies    string
+	PlusOneAttending  bool
+	PlusOneName       string
+	PlusOneMealChoice string
+}
+
 func RSVP(t *templates.Set, signer *session.Signer, st *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		guestID, ok := guestIDFromCookie(r, signer)
@@ -54,17 +66,18 @@ func RSVP(t *templates.Set, signer *session.Signer, st *store.Store) http.Handle
 			return
 		}
 
-		view := RSVPFormView{GuestName: guest.FirstName, PlusOneAllowed: guest.PlusOneAllowed}
-		existing, hasRSVP, err := st.GetRSVPByGuestID(ctx, guestID)
+		_, hasRSVP, err := st.GetRSVPByGuestID(ctx, guestID)
 		if err != nil {
 			slog.Error("load rsvp failed", "err", err, "path", r.URL.Path)
 			RenderInternalError(t, w, r)
 			return
 		}
-		switch {
-		case hasRSVP:
-			view = fillViewFromRSVP(view, existing)
-		case guest.PlusOneName != nil:
+		if hasRSVP {
+			http.Redirect(w, r, "/rsvp/thanks", http.StatusSeeOther)
+			return
+		}
+		view := RSVPFormView{GuestName: guest.FirstName, PlusOneAllowed: guest.PlusOneAllowed}
+		if guest.PlusOneName != nil {
 			view.PlusOneName = *guest.PlusOneName
 		}
 		t.Render(w, r, "rsvp.html", view)
@@ -92,6 +105,18 @@ func RSVPSubmit(t *templates.Set, signer *session.Signer, st *store.Store) http.
 			return
 		}
 
+		// RSVPs are submit-once: a guest who has already responded can't change it.
+		_, hasRSVP, err := st.GetRSVPByGuestID(ctx, guestID)
+		if err != nil {
+			slog.Error("load rsvp failed", "err", err, "path", r.URL.Path)
+			RenderInternalError(t, w, r)
+			return
+		}
+		if hasRSVP {
+			http.Redirect(w, r, "/rsvp/thanks", http.StatusSeeOther)
+			return
+		}
+
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "bad form", http.StatusBadRequest)
 			return
@@ -106,8 +131,10 @@ func RSVPSubmit(t *templates.Set, signer *session.Signer, st *store.Store) http.
 		if ip := clientIP(r); ip != "" {
 			rsvp.RemoteAddr = &ip
 		}
-		if _, err := st.UpsertRSVP(ctx, rsvp); err != nil {
-			slog.Error("upsert rsvp failed", "err", err, "path", r.URL.Path)
+		// inserted == false means a concurrent submit beat us in; either way the
+		// guest's response is recorded, so send them to the confirmation.
+		if _, _, err := st.InsertRSVP(ctx, rsvp); err != nil {
+			slog.Error("insert rsvp failed", "err", err, "path", r.URL.Path)
 			RenderInternalError(t, w, r)
 			return
 		}
@@ -115,9 +142,38 @@ func RSVPSubmit(t *templates.Set, signer *session.Signer, st *store.Store) http.
 	}
 }
 
-func RSVPThanks(t *templates.Set) http.HandlerFunc {
+func RSVPThanks(t *templates.Set, signer *session.Signer, st *store.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		t.Render(w, r, "rsvp-thanks.html", nil)
+		guestID, ok := guestIDFromCookie(r, signer)
+		if !ok {
+			http.Redirect(w, r, "/rsvp", http.StatusSeeOther)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		rsvp, hasRSVP, err := st.GetRSVPByGuestID(ctx, guestID)
+		if err != nil {
+			slog.Error("load rsvp failed", "err", err, "path", r.URL.Path)
+			RenderInternalError(t, w, r)
+			return
+		}
+		if !hasRSVP {
+			http.Redirect(w, r, "/rsvp", http.StatusSeeOther)
+			return
+		}
+		guest, found, err := st.GetGuestByID(ctx, guestID)
+		if err != nil {
+			slog.Error("load guest failed", "err", err, "path", r.URL.Path)
+			RenderInternalError(t, w, r)
+			return
+		}
+		if !found {
+			clearAuthCookie(w, r)
+			http.Redirect(w, r, "/rsvp", http.StatusSeeOther)
+			return
+		}
+		t.Render(w, r, "rsvp-thanks.html", confirmationView(guest, rsvp))
 	}
 }
 
@@ -225,31 +281,37 @@ func validateRSVP(form url.Values, guest store.Guest) (store.RSVP, RSVPFormView,
 	return out, view, errs
 }
 
-func fillViewFromRSVP(v RSVPFormView, r store.RSVP) RSVPFormView {
-	v.Attending = yesNo(r.Attending)
-	if r.MealChoice != nil {
-		v.MealChoice = *r.MealChoice
+// confirmationView resolves a stored RSVP into display-ready fields for the
+// read-only recap on the thanks page (templates can't safely print *string).
+func confirmationView(guest store.Guest, r store.RSVP) RSVPConfirmationView {
+	v := RSVPConfirmationView{
+		GuestName:        guest.FirstName,
+		Attending:        r.Attending,
+		DairyAllergy:     r.DairyAllergy,
+		GlutenAllergy:    r.GlutenAllergy,
+		PlusOneAttending: r.PlusOneAttending,
 	}
-	v.DairyAllergy = yesNo(r.DairyAllergy)
-	v.GlutenAllergy = yesNo(r.GlutenAllergy)
+	if r.MealChoice != nil {
+		v.MealChoice = mealLabel(*r.MealChoice)
+	}
 	if r.OtherAllergies != nil {
 		v.OtherAllergies = *r.OtherAllergies
 	}
-	v.PlusOneAttending = yesNo(r.PlusOneAttending)
 	if r.PlusOneName != nil {
 		v.PlusOneName = *r.PlusOneName
 	}
 	if r.PlusOneMealChoice != nil {
-		v.PlusOneMealChoice = *r.PlusOneMealChoice
+		v.PlusOneMealChoice = mealLabel(*r.PlusOneMealChoice)
 	}
 	return v
 }
 
-func yesNo(b bool) string {
-	if b {
-		return "yes"
+// mealLabel renders a stored meal value ("chicken") for display ("Chicken").
+func mealLabel(s string) string {
+	if s == "" {
+		return ""
 	}
-	return "no"
+	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 func normalizeEmail(s string) string {

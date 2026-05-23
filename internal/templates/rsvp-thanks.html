@@ -1,6 +1,21 @@
 {{ define "title" }}Thanks &middot; Michael &amp; Adrien{{ end }}
 {{ define "content" }}
-<h1>Thank you!</h1>
-<p>Your RSVP has been received. We can't wait to celebrate with you.</p>
+{{ with .Data }}
+<h1>Thank you{{ if .GuestName }}, {{ .GuestName }}{{ end }}!</h1>
+{{ if .Attending }}
+<p>Your RSVP has been received. We can&rsquo;t wait to celebrate with you! Here&rsquo;s what you told us:</p>
+<ul>
+<li>Attending: Yes</li>
+<li>Meal: {{ .MealChoice }}</li>
+{{ if .DairyAllergy }}<li>Dairy allergy</li>{{ end }}
+{{ if .GlutenAllergy }}<li>Gluten allergy</li>{{ end }}
+{{ if .OtherAllergies }}<li>Other allergies: {{ .OtherAllergies }}</li>{{ end }}
+{{ if .PlusOneAttending }}<li>Guest: {{ .PlusOneName }} &mdash; {{ .PlusOneMealChoice }}</li>{{ end }}
+</ul>
+{{ else }}
+<p>Your RSVP has been received &mdash; we&rsquo;re sorry you can&rsquo;t make it, but thank you for letting us know.</p>
+{{ end }}
+<p>Need to make a change? <a href="/contact/get-in-touch">Get in touch</a> and we&rsquo;ll update it for you.</p>
 <p><a href="/">Back to home</a></p>
+{{ end }}
 {{ end }}
