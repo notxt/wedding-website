@@ -2,14 +2,17 @@
 {{ define "content" }}
 {{ with .Data }}
 <style>
+.rsvp-greeting { font-style: italic; }
+.rsvp-intro { font-weight: 300; }
 .rsvp-when, .rsvp-plus-one, .rsvp-plus-one-meal { display: none; }
 form.rsvp:has(input[name="attending"][value="yes"]:checked) .rsvp-when { display: flex; }
 form.rsvp:has(input[name="attending"][value="yes"]:checked) .rsvp-plus-one { display: flex; }
 form.rsvp:has(input[name="attending"][value="yes"]:checked):has(input[name="plus_one_attending"][value="yes"]:checked) .rsvp-plus-one-meal { display: flex; }
 </style>
 <h1>RSVP</h1>
-<p>{{ if .GuestName }}Welcome, {{ .GuestName }}! {{ end }}Please respond by August 28, 2026.</p>
-<p>Michael Schoenfelder&rsquo;s and Adrien Warner&rsquo;s wedding is Friday, September 25th 2026 in Santa Fe, New Mexico. The ceremony begins at 5pm at the New Mexico Museum of Art, after which the reception will take place at Meow Wolf: House of Eternal Return from 7pm to midnight.</p>
+<p class="rsvp-greeting">{{ if .GuestName }}Welcome, {{ .GuestName }}! {{ end }}Please respond by August 28, 2026.</p>
+<p class="rsvp-intro">Michael Schoenfelder&rsquo;s and Adrien Warner&rsquo;s wedding is Friday, September 25th 2026 in Santa Fe, New Mexico.</p>
+<p class="rsvp-intro">The ceremony begins at 5pm at the New Mexico Museum of Art, after which the reception will take place at Meow Wolf: House of Eternal Return from 7pm to midnight.</p>
 
 <form class="rsvp" method="post" action="/rsvp" novalidate>
 <fieldset>
@@ -34,10 +37,22 @@ Guest's name
 {{ end }}
 
 <fieldset class="rsvp-when">
-<legend>Please select your meal preference below</legend>
+<legend>Please select your meal preference</legend>
 <label><input type="radio" name="meal_choice" value="chicken" {{ if eq .MealChoice "chicken" }}checked{{ end }}> Chicken</label>
 <label><input type="radio" name="meal_choice" value="vegetarian" {{ if eq .MealChoice "vegetarian" }}checked{{ end }}> Vegetarian</label>
 {{ with index .Errors "meal_choice" }}<p role="alert">{{ . }}</p>{{ end }}
+</fieldset>
+
+<fieldset class="rsvp-when">
+<legend>Dairy allergy?</legend>
+<label><input type="radio" name="dairy_allergy" value="yes" {{ if eq .DairyAllergy "yes" }}checked{{ end }}> Yes</label>
+<label><input type="radio" name="dairy_allergy" value="no" {{ if or (eq .DairyAllergy "no") (eq .DairyAllergy "") }}checked{{ end }}> No</label>
+</fieldset>
+
+<fieldset class="rsvp-when">
+<legend>Gluten allergy?</legend>
+<label><input type="radio" name="gluten_allergy" value="yes" {{ if eq .GlutenAllergy "yes" }}checked{{ end }}> Yes</label>
+<label><input type="radio" name="gluten_allergy" value="no" {{ if or (eq .GlutenAllergy "no") (eq .GlutenAllergy "") }}checked{{ end }}> No</label>
 </fieldset>
 
 {{ if .PlusOneAllowed }}
@@ -60,18 +75,6 @@ Guest's name
 <label><input type="radio" name="plus_one_gluten_allergy" value="no" {{ if or (eq .PlusOneGlutenAllergy "no") (eq .PlusOneGlutenAllergy "") }}checked{{ end }}> No</label>
 </fieldset>
 {{ end }}
-
-<fieldset class="rsvp-when">
-<legend>Dairy allergy?</legend>
-<label><input type="radio" name="dairy_allergy" value="yes" {{ if eq .DairyAllergy "yes" }}checked{{ end }}> Yes</label>
-<label><input type="radio" name="dairy_allergy" value="no" {{ if or (eq .DairyAllergy "no") (eq .DairyAllergy "") }}checked{{ end }}> No</label>
-</fieldset>
-
-<fieldset class="rsvp-when">
-<legend>Gluten allergy?</legend>
-<label><input type="radio" name="gluten_allergy" value="yes" {{ if eq .GlutenAllergy "yes" }}checked{{ end }}> Yes</label>
-<label><input type="radio" name="gluten_allergy" value="no" {{ if or (eq .GlutenAllergy "no") (eq .GlutenAllergy "") }}checked{{ end }}> No</label>
-</fieldset>
 
 <label class="rsvp-when">
 Are you or anyone else in your party allergic to any other ingredients? If so, please list them and specify who has the allergy. Otherwise, leave this blank.
