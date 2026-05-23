@@ -1,0 +1,3 @@
+ALTER TABLE rsvps ADD COLUMN IF NOT EXISTS plus_one_dairy_allergy  BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE rsvps ADD COLUMN IF NOT EXISTS plus_one_gluten_allergy BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE rsvps ADD COLUMN IF NOT EXISTS anything_else           TEXT;

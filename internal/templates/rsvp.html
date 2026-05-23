@@ -8,7 +8,8 @@ form.rsvp:has(input[name="attending"][value="yes"]:checked) .rsvp-plus-one { dis
 form.rsvp:has(input[name="attending"][value="yes"]:checked):has(input[name="plus_one_attending"][value="yes"]:checked) .rsvp-plus-one-meal { display: flex; }
 </style>
 <h1>RSVP</h1>
-<p>{{ if .GuestName }}Welcome, {{ .GuestName }}! {{ end }}Please respond by August 1, 2026.</p>
+<p>{{ if .GuestName }}Welcome, {{ .GuestName }}! {{ end }}Please respond by August 28, 2026.</p>
+<p>Michael Schoenfelder&rsquo;s and Adrien Warner&rsquo;s wedding is Friday, September 25th 2026 in Santa Fe, New Mexico. The ceremony begins at 5pm at the New Mexico Museum of Art, after which the reception will take place at Meow Wolf: House of Eternal Return from 7pm to midnight.</p>
 
 <form class="rsvp" method="post" action="/rsvp" novalidate>
 <fieldset>
@@ -33,7 +34,7 @@ Guest's name
 {{ end }}
 
 <fieldset class="rsvp-when">
-<legend>Your meal preference</legend>
+<legend>Please select your meal preference below</legend>
 <label><input type="radio" name="meal_choice" value="chicken" {{ if eq .MealChoice "chicken" }}checked{{ end }}> Chicken</label>
 <label><input type="radio" name="meal_choice" value="vegetarian" {{ if eq .MealChoice "vegetarian" }}checked{{ end }}> Vegetarian</label>
 {{ with index .Errors "meal_choice" }}<p role="alert">{{ . }}</p>{{ end }}
@@ -41,10 +42,22 @@ Guest's name
 
 {{ if .PlusOneAllowed }}
 <fieldset class="rsvp-plus-one-meal">
-<legend>Guest's meal preference</legend>
+<legend>Please select your guest's meal preference</legend>
 <label><input type="radio" name="plus_one_meal_choice" value="chicken" {{ if eq .PlusOneMealChoice "chicken" }}checked{{ end }}> Chicken</label>
 <label><input type="radio" name="plus_one_meal_choice" value="vegetarian" {{ if eq .PlusOneMealChoice "vegetarian" }}checked{{ end }}> Vegetarian</label>
 {{ with index .Errors "plus_one_meal_choice" }}<p role="alert">{{ . }}</p>{{ end }}
+</fieldset>
+
+<fieldset class="rsvp-plus-one-meal">
+<legend>Does your guest have a dairy allergy?</legend>
+<label><input type="radio" name="plus_one_dairy_allergy" value="yes" {{ if eq .PlusOneDairyAllergy "yes" }}checked{{ end }}> Yes</label>
+<label><input type="radio" name="plus_one_dairy_allergy" value="no" {{ if or (eq .PlusOneDairyAllergy "no") (eq .PlusOneDairyAllergy "") }}checked{{ end }}> No</label>
+</fieldset>
+
+<fieldset class="rsvp-plus-one-meal">
+<legend>Does your guest have a gluten allergy?</legend>
+<label><input type="radio" name="plus_one_gluten_allergy" value="yes" {{ if eq .PlusOneGlutenAllergy "yes" }}checked{{ end }}> Yes</label>
+<label><input type="radio" name="plus_one_gluten_allergy" value="no" {{ if or (eq .PlusOneGlutenAllergy "no") (eq .PlusOneGlutenAllergy "") }}checked{{ end }}> No</label>
 </fieldset>
 {{ end }}
 
@@ -61,8 +74,13 @@ Guest's name
 </fieldset>
 
 <label class="rsvp-when">
-Other allergies (optional)
+Are you or anyone else in your party allergic to any other ingredients? If so, please list them and specify who has the allergy. Otherwise, leave this blank.
 <textarea name="other_allergies">{{ .OtherAllergies }}</textarea>
+</label>
+
+<label>
+Is there anything else we should know?
+<textarea name="anything_else">{{ .AnythingElse }}</textarea>
 </label>
 
 <button type="submit">Submit RSVP</button>
