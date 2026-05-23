@@ -19,29 +19,35 @@ type AuthForm struct {
 }
 
 type RSVPFormView struct {
-	GuestName         string
-	PlusOneAllowed    bool
-	Attending         string
-	MealChoice        string
-	DairyAllergy      string
-	GlutenAllergy     string
-	OtherAllergies    string
-	PlusOneAttending  string
-	PlusOneName       string
-	PlusOneMealChoice string
-	Errors            map[string]string
+	GuestName            string
+	PlusOneAllowed       bool
+	Attending            string
+	MealChoice           string
+	DairyAllergy         string
+	GlutenAllergy        string
+	OtherAllergies       string
+	PlusOneAttending     string
+	PlusOneName          string
+	PlusOneMealChoice    string
+	PlusOneDairyAllergy  string
+	PlusOneGlutenAllergy string
+	AnythingElse         string
+	Errors               map[string]string
 }
 
 type RSVPConfirmationView struct {
-	GuestName         string
-	Attending         bool
-	MealChoice        string
-	DairyAllergy      bool
-	GlutenAllergy     bool
-	OtherAllergies    string
-	PlusOneAttending  bool
-	PlusOneName       string
-	PlusOneMealChoice string
+	GuestName            string
+	Attending            bool
+	MealChoice           string
+	DairyAllergy         bool
+	GlutenAllergy        bool
+	OtherAllergies       string
+	PlusOneAttending     bool
+	PlusOneName          string
+	PlusOneMealChoice    string
+	PlusOneDairyAllergy  bool
+	PlusOneGlutenAllergy bool
+	AnythingElse         string
 }
 
 func RSVP(t *templates.Set, signer *session.Signer, st *store.Store) http.HandlerFunc {
@@ -221,16 +227,19 @@ func validateRSVP(form url.Values, guest store.Guest) (store.RSVP, RSVPFormView,
 	errs := map[string]string{}
 	out := store.RSVP{}
 	view := RSVPFormView{
-		GuestName:         guest.FirstName,
-		PlusOneAllowed:    guest.PlusOneAllowed,
-		Attending:         form.Get("attending"),
-		MealChoice:        form.Get("meal_choice"),
-		DairyAllergy:      form.Get("dairy_allergy"),
-		GlutenAllergy:     form.Get("gluten_allergy"),
-		OtherAllergies:    form.Get("other_allergies"),
-		PlusOneAttending:  form.Get("plus_one_attending"),
-		PlusOneName:       form.Get("plus_one_name"),
-		PlusOneMealChoice: form.Get("plus_one_meal_choice"),
+		GuestName:            guest.FirstName,
+		PlusOneAllowed:       guest.PlusOneAllowed,
+		Attending:            form.Get("attending"),
+		MealChoice:           form.Get("meal_choice"),
+		DairyAllergy:         form.Get("dairy_allergy"),
+		GlutenAllergy:        form.Get("gluten_allergy"),
+		OtherAllergies:       form.Get("other_allergies"),
+		PlusOneAttending:     form.Get("plus_one_attending"),
+		PlusOneName:          form.Get("plus_one_name"),
+		PlusOneMealChoice:    form.Get("plus_one_meal_choice"),
+		PlusOneDairyAllergy:  form.Get("plus_one_dairy_allergy"),
+		PlusOneGlutenAllergy: form.Get("plus_one_gluten_allergy"),
+		AnythingElse:         form.Get("anything_else"),
 	}
 
 	switch form.Get("attending") {
@@ -270,7 +279,14 @@ func validateRSVP(form url.Values, guest store.Guest) (store.RSVP, RSVPFormView,
 			default:
 				errs["plus_one_meal_choice"] = "Please choose a meal for your guest."
 			}
+			out.PlusOneDairyAllergy = form.Get("plus_one_dairy_allergy") == "yes"
+			out.PlusOneGlutenAllergy = form.Get("plus_one_gluten_allergy") == "yes"
 		}
+	}
+
+	// "Anything else" is a general note, captured whether or not they're attending.
+	if note := strings.TrimSpace(form.Get("anything_else")); note != "" {
+		out.AnythingElse = &note
 	}
 
 	out.PartyNames = strings.TrimSpace(guest.FirstName + " " + guest.LastName)
@@ -285,11 +301,16 @@ func validateRSVP(form url.Values, guest store.Guest) (store.RSVP, RSVPFormView,
 // read-only recap on the thanks page (templates can't safely print *string).
 func confirmationView(guest store.Guest, r store.RSVP) RSVPConfirmationView {
 	v := RSVPConfirmationView{
-		GuestName:        guest.FirstName,
-		Attending:        r.Attending,
-		DairyAllergy:     r.DairyAllergy,
-		GlutenAllergy:    r.GlutenAllergy,
-		PlusOneAttending: r.PlusOneAttending,
+		GuestName:            guest.FirstName,
+		Attending:            r.Attending,
+		DairyAllergy:         r.DairyAllergy,
+		GlutenAllergy:        r.GlutenAllergy,
+		PlusOneAttending:     r.PlusOneAttending,
+		PlusOneDairyAllergy:  r.PlusOneDairyAllergy,
+		PlusOneGlutenAllergy: r.PlusOneGlutenAllergy,
+	}
+	if r.AnythingElse != nil {
+		v.AnythingElse = *r.AnythingElse
 	}
 	if r.MealChoice != nil {
 		v.MealChoice = mealLabel(*r.MealChoice)

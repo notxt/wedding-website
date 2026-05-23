@@ -11,9 +11,13 @@
 {{ if .GlutenAllergy }}<li>Gluten allergy</li>{{ end }}
 {{ if .OtherAllergies }}<li>Other allergies: {{ .OtherAllergies }}</li>{{ end }}
 {{ if .PlusOneAttending }}<li>Guest: {{ .PlusOneName }} &mdash; {{ .PlusOneMealChoice }}</li>{{ end }}
+{{ if .PlusOneDairyAllergy }}<li>Guest dairy allergy</li>{{ end }}
+{{ if .PlusOneGlutenAllergy }}<li>Guest gluten allergy</li>{{ end }}
+{{ if .AnythingElse }}<li>Notes: {{ .AnythingElse }}</li>{{ end }}
 </ul>
 {{ else }}
 <p>Your RSVP has been received &mdash; we&rsquo;re sorry you can&rsquo;t make it, but thank you for letting us know.</p>
+{{ if .AnythingElse }}<p>You also told us: {{ .AnythingElse }}</p>{{ end }}
 {{ end }}
 <p>Need to make a change? <a href="/contact/get-in-touch">Get in touch</a> and we&rsquo;ll update it for you.</p>
 <p><a href="/">Back to home</a></p>
