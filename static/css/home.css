@@ -135,7 +135,7 @@
   display: inline-block;
   text-align: center;
   color: var(--hE-ink);
-  opacity: 0.55;
+  opacity: 0.70;
   text-shadow:
     0 0 8px rgba(253, 243, 220, 0.55),
     0 0 28px rgba(246, 231, 200, 0.45),
@@ -156,7 +156,7 @@
   display: block;
   margin: 0;
   padding: 0 0.05em;
-  opacity: 0.55;
+  opacity: 0.70;
   text-shadow:
     0 0 8px rgba(253, 243, 220, 0.55),
     0 0 28px rgba(246, 231, 200, 0.45),
