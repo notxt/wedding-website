@@ -82,8 +82,8 @@ func TestRSVPRoundTrip(t *testing.T) {
 	for i := range cases {
 		gid := insertGuest(t, ctx, s, cases[i].guest.Email, cases[i].guest.FirstName, cases[i].guest.LastName, cases[i].guest.PlusOneAllowed)
 		cases[i].in.GuestID = gid
-		if _, err := s.UpsertRSVP(ctx, cases[i].in); err != nil {
-			t.Fatalf("%s: upsert: %v", cases[i].guest.Email, err)
+		if _, _, err := s.InsertRSVP(ctx, cases[i].in); err != nil {
+			t.Fatalf("%s: insert: %v", cases[i].guest.Email, err)
 		}
 	}
 
@@ -132,31 +132,41 @@ func TestRSVPRoundTrip(t *testing.T) {
 	}
 }
 
-func TestRSVPUpsertOverwrites(t *testing.T) {
+func TestRSVPInsertIsSubmitOnce(t *testing.T) {
 	s := openTestStore(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	gid := insertGuest(t, ctx, s, "up@example.com", "Up", "Sert", true)
 
-	id1, err := s.UpsertRSVP(ctx, store.RSVP{GuestID: gid, Attending: true, PartyNames: "Up Sert", MealChoice: strp("chicken")})
+	id1, inserted, err := s.InsertRSVP(ctx, store.RSVP{GuestID: gid, Attending: true, PartyNames: "Up Sert", MealChoice: strp("chicken")})
 	if err != nil {
-		t.Fatalf("first upsert: %v", err)
+		t.Fatalf("first insert: %v", err)
 	}
-	id2, err := s.UpsertRSVP(ctx, store.RSVP{GuestID: gid, Attending: false, PartyNames: "Up Sert"})
+	if !inserted {
+		t.Fatalf("first insert should have recorded the RSVP")
+	}
+
+	id2, inserted, err := s.InsertRSVP(ctx, store.RSVP{GuestID: gid, Attending: false, PartyNames: "Up Sert"})
 	if err != nil {
-		t.Fatalf("second upsert: %v", err)
+		t.Fatalf("second insert: %v", err)
 	}
-	if id1 != id2 {
-		t.Errorf("upsert created a new row instead of updating: %d vs %d", id1, id2)
+	if inserted {
+		t.Errorf("second insert should be a no-op for an already-submitted guest")
+	}
+	if id2 != 0 {
+		t.Errorf("a no-op insert should return id 0, got %d", id2)
 	}
 
 	got, ok, err := s.GetRSVPByGuestID(ctx, gid)
 	if err != nil || !ok {
 		t.Fatalf("get by guest: ok=%v err=%v", ok, err)
 	}
-	if got.Attending {
-		t.Errorf("expected the second (not attending) answer to win")
+	if got.ID != id1 {
+		t.Errorf("expected the original row %d to remain, got %d", id1, got.ID)
+	}
+	if !got.Attending {
+		t.Errorf("expected the first (attending) answer to stand, not be overwritten")
 	}
 
 	var n int

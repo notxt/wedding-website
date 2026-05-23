@@ -90,7 +90,7 @@ func main() {
 	mux.HandleFunc("GET /rsvp", handlers.RSVP(tmpls, signer, st))
 	mux.HandleFunc("POST /rsvp/auth", handlers.RSVPAuthSubmit(tmpls, signer, st))
 	mux.Handle("POST /rsvp", authMW.RequireRSVPAuth(handlers.RSVPSubmit(tmpls, signer, st)))
-	mux.Handle("GET /rsvp/thanks", authMW.RequireRSVPAuth(handlers.RSVPThanks(tmpls)))
+	mux.Handle("GET /rsvp/thanks", authMW.RequireRSVPAuth(handlers.RSVPThanks(tmpls, signer, st)))
 
 	var handler http.Handler = mux
 	handler = middleware.Recover(tmpls)(handler)

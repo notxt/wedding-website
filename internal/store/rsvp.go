@@ -25,35 +25,28 @@ type RSVP struct {
 	RemoteAddr        *string
 }
 
-// UpsertRSVP records (or, for a returning guest, overwrites) a guest's RSVP.
-// One row per guest_id via the rsvps_guest_id_key unique index.
-func (s *Store) UpsertRSVP(ctx context.Context, r RSVP) (int64, error) {
+// InsertRSVP records a guest's RSVP. RSVPs are submit-once: if the guest already
+// has one (enforced by the rsvps_guest_id_key unique index), the insert is a no-op
+// and inserted is false. Corrections are handled out of band by the couple.
+func (s *Store) InsertRSVP(ctx context.Context, r RSVP) (id int64, inserted bool, err error) {
 	const q = `
 		INSERT INTO rsvps
 			(guest_id, attending, party_names, meal_choice, dairy_allergy, gluten_allergy,
 			 other_allergies, plus_one_attending, plus_one_name, plus_one_meal_choice, remote_addr)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-		ON CONFLICT (guest_id) DO UPDATE SET
-			submitted_at         = now(),
-			attending            = EXCLUDED.attending,
-			party_names          = EXCLUDED.party_names,
-			meal_choice          = EXCLUDED.meal_choice,
-			dairy_allergy        = EXCLUDED.dairy_allergy,
-			gluten_allergy       = EXCLUDED.gluten_allergy,
-			other_allergies      = EXCLUDED.other_allergies,
-			plus_one_attending   = EXCLUDED.plus_one_attending,
-			plus_one_name        = EXCLUDED.plus_one_name,
-			plus_one_meal_choice = EXCLUDED.plus_one_meal_choice,
-			remote_addr          = EXCLUDED.remote_addr
+		ON CONFLICT (guest_id) DO NOTHING
 		RETURNING id`
-	var id int64
-	if err := s.Pool.QueryRow(ctx, q,
+	err = s.Pool.QueryRow(ctx, q,
 		r.GuestID, r.Attending, r.PartyNames, r.MealChoice, r.DairyAllergy, r.GlutenAllergy,
 		r.OtherAllergies, r.PlusOneAttending, r.PlusOneName, r.PlusOneMealChoice, r.RemoteAddr,
-	).Scan(&id); err != nil {
-		return 0, fmt.Errorf("upsert rsvp: %w", err)
+	).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, false, nil
 	}
-	return id, nil
+	if err != nil {
+		return 0, false, fmt.Errorf("insert rsvp: %w", err)
+	}
+	return id, true, nil
 }
 
 // GetRSVPByGuestID returns a guest's existing RSVP for pre-filling the form. The
