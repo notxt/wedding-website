@@ -13,7 +13,7 @@ CloudFormation templates for the wedding website. Deploy scripts live in `bin/`.
 
 ## Prerequisites
 
-- AWS credentials available to the shell. Run `aws login` on the host once; the dev container mounts `~/.aws` read-only and resolves the profile from the cached login session (see `CLAUDE.md` and `compose.yml`).
+- AWS credentials available to the shell. Run `aws login` on the host once; the dev container mounts the host `~/.aws/config` read-only and `~/.aws/login` read-write (sharing the live credential cache) and resolves the profile from the cached login session (see `CLAUDE.md` and `compose.yml`).
 - Region defaults to `us-west-2`. Override with `AWS_REGION=...` if you ever need a different region.
 - `cfn-lint` is installed in the dev container (`dev/Dockerfile`). Lint any template with `cfn-lint infra/<template>.yaml`.
 

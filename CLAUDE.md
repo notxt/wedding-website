@@ -83,17 +83,30 @@ This is a thin wrapper around `docker compose run --rm --service-ports dev`. The
 
 It drops you into a bash shell at `/workspace` (the repo, bind-mounted), with a sibling `postgres` service reachable at `postgres:5432`.
 
-**AWS credentials**: the host `~/.aws` is mounted read-only at `/home/dev/.aws`. Authenticate on the host (`aws login`); the container's own AWS CLI then resolves the profile and mints short-lived creds from the cached login session, refreshing them itself as they expire. No env vars to wrangle, and the region rides along from `~/.aws/config`. When the login session itself expires, re-run `aws login` on the host.
+**AWS credentials**: authenticate on the host (`aws login`); the container's own AWS CLI then resolves the profile and mints short-lived creds from the cached login session, refreshing them itself as they expire. No env vars to wrangle, and the region rides along from `~/.aws/config`. When the login session itself expires, re-run `aws login` on the host. Mechanically, `~/.aws` is mounted in two pieces: `~/.aws/config` **read-only** (the host's config can't be tampered with from inside the container), and `~/.aws/login` **read-write** (shared live with the host). The read-write `login` mount is required, not incidental: an `aws login` session rotates its refresh token on every refresh and rewrites `~/.aws/login/cache`, so host and container *must* share the one cache file — a read-only mount breaks every `aws` call, and a snapshot/copy would invalidate the host's login the first time either side refreshes.
 
 **GitHub App key** is mounted read-only from `${CLAUDE_GH_APP_DIR:-../claude_gh_app}` (relative to the repo root). The container fetches a fresh installation token on every `git push` via a credential helper — no token wrangling needed.
 
 **Container detection:** `WEDDING_DEV_CONTAINER=1` is set inside the container. Scripts can branch on it: `[ -n "${WEDDING_DEV_CONTAINER:-}" ]`.
 
+**Database access (prod):** the prod RDS is private (no public access, no Data API — it's a plain RDS instance, not Aurora), so reach it via an SSM port-forward through the app EC2 instance. `bin/db-tunnel.sh` does this end-to-end — it resolves the instance + DB facts, opens the tunnel, and runs `psql`:
+
+```bash
+./bin/db-tunnel.sh -c "select count(*) from rsvps;"   # one-shot, prints to stdout
+./bin/db-tunnel.sh -f report.sql                       # run a file
+echo "select * from guests;" | ./bin/db-tunnel.sh      # SQL from stdin
+./bin/db-tunnel.sh                                     # interactive psql (on a TTY)
+```
+
+It's **read-only by default** (so an agent can't accidentally mutate the guest list); pass `--write` to allow writes. Notes:
+- The container ships `session-manager-plugin`, but it only lands after a **host image rebuild** (`docker compose build dev`, or the next `./bin/dev.sh`). Until then the script errors with a hint.
+- The connecting AWS identity needs `ssm:StartSession` on the instance + the `AWS-StartPortForwardingSessionToRemoteHost` document, and `secretsmanager:GetSecretValue` on the RDS master secret. Creds come from that master secret today; the script isolates credential fetching so a later move to RDS IAM auth is a one-function change.
+
 **Trust boundary:** the only host paths visible inside the container are:
 - the repo (read-write — Claude needs to edit it)
 - `~/.claude` and `~/.claude.json` (read-write — preserves your Claude Code login + settings)
 - the GH App key dir (read-only)
-- `~/.aws` (read-only — lets the container's AWS CLI use the host login session)
+- `~/.aws/config` (read-only — the container's AWS CLI reads the profile but can't inject a `credential_process` into the host's config) and `~/.aws/login` (read-write — the shared, rotating credential cache the CLI must rewrite to refresh)
 
 No docker socket. No host network. Runs as a non-root `dev` user. This is the boundary that makes `--dangerously-skip-permissions` acceptable.
 
