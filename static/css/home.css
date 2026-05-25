@@ -129,7 +129,7 @@
   font-weight: 900;
   font-style: italic;
   font-synthesis: none;
-  font-size: clamp(88px, 14vw, 184px);
+  font-size: clamp(48px, 14vw, 184px);
   line-height: 0.92;
   letter-spacing: 0.02em;
   display: inline-block;
@@ -150,7 +150,7 @@
   font-weight: 900;
   font-style: italic;
   font-synthesis: none;
-  font-size: clamp(74px, 12vw, 158px);
+  font-size: clamp(40px, 12vw, 158px);
   line-height: 1;
   color: var(--hE-ink);
   display: block;
