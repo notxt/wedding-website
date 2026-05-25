@@ -169,29 +169,45 @@
 
 .heroE-divider-moon {
   --moon: clamp(46px, 6vw, 64px);
+  position: relative;
   width: var(--moon);
   height: var(--moon);
   border-radius: 50%;
-  box-sizing: border-box;
+  overflow: hidden;
+  /* Promote to its own compositing layer so WebKit reliably clips the
+     transformed ::before to the rounded shape (otherwise iOS Safari can let a
+     composited child escape the border-radius and show square corners). */
+  transform: translateZ(0);
   margin: clamp(20px, 4vh, 56px) auto;
-  background: #241a4a;
-  animation: heroE-moonphase 30s linear infinite;
+  background: #fdf3dc;
   filter:
     drop-shadow(0 0 6px rgba(253, 243, 220, 0.6))
     drop-shadow(0 0 20px rgba(246, 231, 200, 0.42))
     drop-shadow(0 0 46px rgba(216, 164, 143, 0.28));
 }
-/* Symmetric sweep: full moon at both ends (offset magnitude > width = fully lit),
-   new moon dead-centre at 50% (zero offset = no inset fill). Ends match, so the
-   loop is seamless and the waxing half mirrors the waning half. */
+/* The phase is a dark disc-fill swept across the lit moon via an animated
+   transform — composited, so it stays smooth on iOS — instead of an animated
+   inset box-shadow, which is painted every frame and renders coarsely on mobile
+   Safari (especially under the drop-shadow glow). Symmetric sweep: full moon at
+   both ends (panel fully off-disc), new moon dead-centre (panel covers it). The
+   ends match (both fully lit), so the loop is seamless. */
+.heroE-divider-moon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #241a4a;
+  animation: heroE-moonphase 30s linear infinite;
+}
 @keyframes heroE-moonphase {
-  0%   { box-shadow: calc(var(--moon) * -1.3) 0 0 0 #fdf3dc inset; }
-  100% { box-shadow: calc(var(--moon) *  1.3) 0 0 0 #fdf3dc inset; }
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(0); }
+  100% { transform: translateX(100%); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .heroE-divider-moon {
+  .heroE-divider-moon::before {
     animation: none;
-    box-shadow: calc(var(--moon) * -0.55) 0 0 0 #fdf3dc inset;
+    transform: translateX(-50%);
   }
   .heroE-twinkle { animation: none; }
 }
