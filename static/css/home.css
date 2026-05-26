@@ -180,10 +180,13 @@
   transform: translateZ(0);
   margin: clamp(20px, 4vh, 56px) auto;
   background: #fdf3dc;
-  filter:
-    drop-shadow(0 0 6px rgba(253, 243, 220, 0.6))
-    drop-shadow(0 0 20px rgba(246, 231, 200, 0.42))
-    drop-shadow(0 0 46px rgba(216, 164, 143, 0.28));
+  /* Glow via box-shadow, not filter: combining `filter` with `overflow: hidden`
+     + `border-radius` makes iOS Safari render the element as a square. box-shadow
+     follows the rounded box and isn't clipped by the element's own overflow. */
+  box-shadow:
+    0 0 6px rgba(253, 243, 220, 0.6),
+    0 0 20px rgba(246, 231, 200, 0.42),
+    0 0 46px rgba(216, 164, 143, 0.28);
 }
 /* The phase is a dark disc-fill swept across the lit moon via an animated
    transform — composited, so it stays smooth on iOS — instead of an animated
