@@ -89,6 +89,8 @@ It drops you into a bash shell at `/workspace` (the repo, bind-mounted), with a 
 
 **Container detection:** `WEDDING_DEV_CONTAINER=1` is set inside the container. Scripts can branch on it: `[ -n "${WEDDING_DEV_CONTAINER:-}" ]`.
 
+**Master DB secret is self-managed and deliberately not rotated** (`DbMasterSecret` in `infra/data.yaml`). See SPEC.md "Master secret rotation policy" for the threat model and the correct fix if rotation ever becomes necessary. Do not flip the secret to `ManageMasterUserPassword: true` without first implementing runtime credential fetching in the Go app — RDS rotation broke the site on 2026-06-09 for exactly this reason.
+
 **Database access (prod):** the prod RDS is private (no public access, no Data API — it's a plain RDS instance, not Aurora), so reach it via an SSM port-forward through the app EC2 instance. `bin/db-tunnel.sh` does this end-to-end — it resolves the instance + DB facts, opens the tunnel, and runs `psql`:
 
 ```bash

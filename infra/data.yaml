@@ -46,6 +46,32 @@ Parameters:
     Default: wedding
 
 Resources:
+  # Self-managed master credentials. We deliberately do NOT rotate.
+  #
+  # RDS-managed rotation caused a real outage on 2026-06-09: the EC2 userdata
+  # bakes the master password into /etc/wedding-website/env at boot, so when
+  # rotation fires the env file goes stale and the app can't authenticate.
+  # The DB lives in a private subnet and is only reachable via an IAM-gated
+  # SSM port-forward (bin/db-tunnel.sh), so the security calculus favors
+  # operational stability over rotation. If we ever decide we need rotation,
+  # the right answer is runtime credential fetching in the Go app, not
+  # toggling this resource.
+  DbMasterSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: !Sub "${ProjectName}/db/master"
+      Description: Master credentials for the wedding RDS instance. Self-managed; never rotates. See infra/data.yaml header comment for rationale.
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${DbMasterUsername}"}'
+        GenerateStringKey: password
+        PasswordLength: 32
+        ExcludeCharacters: '"@/\'
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-db-master-secret"
+
   DbSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -86,7 +112,7 @@ Resources:
         - !Ref DbSecurityGroup
       PubliclyAccessible: false
       MasterUsername: !Ref DbMasterUsername
-      ManageMasterUserPassword: true
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DbMasterSecret}:SecretString:password}}'
       DBName: !Ref DbName
       BackupRetentionPeriod: !Ref DbBackupRetentionDays
       DeletionProtection: true
@@ -95,6 +121,16 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${ProjectName}-db"
+
+  # Canonical link between the secret and the DB instance. Updates the secret
+  # to include host/port/dbname/engine/dbInstanceIdentifier so consumers can
+  # read the full connection info from the secret alone.
+  DbMasterSecretAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref DbMasterSecret
+      TargetId: !Ref DbInstance
+      TargetType: AWS::RDS::DBInstance
 
 Outputs:
   DbEndpoint:
@@ -116,8 +152,8 @@ Outputs:
       Name: !Sub "${ProjectName}-data-DbName"
 
   DbMasterSecretArn:
-    Description: ARN of the Secrets Manager secret holding the master credentials. RDS-managed and auto-rotated every 7 days; consumers should re-read the ARN from RDS rather than caching this export, since RDS may recreate the secret (and change the ARN) on rotation events.
-    Value: !GetAtt DbInstance.MasterUserSecret.SecretArn
+    Description: ARN of the Secrets Manager secret holding the master credentials. Self-managed by CFN; the ARN is stable for the lifetime of the stack (never rotated, never recreated).
+    Value: !Ref DbMasterSecret
     Export:
       Name: !Sub "${ProjectName}-data-DbMasterSecretArn"
 

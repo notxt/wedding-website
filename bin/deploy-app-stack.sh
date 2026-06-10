@@ -24,13 +24,12 @@ fi
 HOSTED_ZONE_ID="${HOSTED_ZONE_FULL_ID##*/}"
 echo "  HostedZoneId: ${HOSTED_ZONE_ID}"
 
-echo "Looking up DbMasterSecretArn from RDS (authoritative source; the data-stack export can lag the actual secret if RDS rotates or recreates it)..."
-DB_MASTER_SECRET_ARN=$(aws rds describe-db-instances \
+echo "Looking up DbMasterSecretArn from the data-stack export (self-managed, stable ARN)..."
+DB_MASTER_SECRET_ARN=$(aws cloudformation list-exports \
   --region "$AWS_REGION" \
-  --db-instance-identifier "$PROJECT_NAME" \
-  --query 'DBInstances[0].MasterUserSecret.SecretArn' \
+  --query "Exports[?Name=='${DATA_STACK_NAME}-DbMasterSecretArn'].Value" \
   --output text)
-[ -n "$DB_MASTER_SECRET_ARN" ] && [ "$DB_MASTER_SECRET_ARN" != "None" ] || { echo "ERROR: RDS instance ${PROJECT_NAME} has no MasterUserSecret." >&2; exit 1; }
+[ -n "$DB_MASTER_SECRET_ARN" ] && [ "$DB_MASTER_SECRET_ARN" != "None" ] || { echo "ERROR: export ${DATA_STACK_NAME}-DbMasterSecretArn not found. Deploy the data stack first." >&2; exit 1; }
 echo "  DbMasterSecretArn: $DB_MASTER_SECRET_ARN"
 
 echo "Linting $TEMPLATE with cfn-lint..."
