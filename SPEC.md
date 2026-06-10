@@ -152,7 +152,20 @@ Four CFN stacks in `infra/`, deployed in this order (see `infra/README.md`):
 
 1. **`wedding-bootstrap`** — S3 bucket for CFN artifacts and CodeDeploy revision bundles.
 2. **`wedding-network`** — VPC `10.0.0.0/16`, two public + two private subnets across us-west-2a/b, IGW, route tables. No NAT (EC2 lives in public subnets with SG-locked ingress).
-3. **`wedding-data`** — RDS Postgres (`db.t4g.micro`, single-AZ, encrypted, deletion-protected, 7-day backups). Master credentials managed by RDS in Secrets Manager. App-level `SESSION_SECRET` secret created outside CFN by the deploy script. (The guest list is seeded into Postgres via `untracked/seed_guests.sql` — see Data model.)
+3. **`wedding-data`** — RDS Postgres (`db.t4g.micro`, single-AZ, encrypted, deletion-protected, 7-day backups). Master credentials are a **self-managed** Secrets Manager secret defined in CFN (`DbMasterSecret`) with `GenerateSecretString` and **no rotation schedule** — see "Master secret rotation policy" below. App-level `SESSION_SECRET` and `ACCESS_CODE` secrets are created outside CFN by the deploy script. (The guest list is seeded into Postgres via `untracked/seed_guests.sql` — see Data model.)
+
+### Master secret rotation policy
+
+The DB master credentials are **deliberately not rotated**. The userdata bakes the password into `/etc/wedding-website/env` at boot, so any rotation event invalidates the running instance's credentials and causes an outage. This happened in production on 2026-06-09.
+
+The threat model that justifies "no rotation":
+
+- The DB is in a private subnet with no public access (`PubliclyAccessible: false`).
+- The only path in is via the app SG (locked to the ALB) or an SSM port-forward through the app EC2 instance (IAM-gated, audited via CloudTrail).
+- The master secret is read only at instance boot (userdata) and by `bin/db-tunnel.sh` (operator workflow, IAM-gated).
+- There is no third-party integration that could leak the secret, no broad IAM read access, no log emission of the secret value.
+
+If rotation ever becomes necessary, the correct fix is **runtime credential fetching** in the Go app (pgxpool `BeforeConnect` hook that pulls from Secrets Manager with a short TTL + force-refresh on auth failure), not flipping the secret to RDS-managed.
 4. **`wedding-app`** — ACM cert (DNS-validated, apex + www), ALB with HTTPS→target-group + HTTP→301 listeners, target group with `/healthz` health check, Route53 alias records, EC2 launch template (AL2023 arm64 `t4g.micro`, instance role with Secrets Manager + CW Logs + SSM + S3 read on the bootstrap bucket), ASG `1/1/1` self-healing, CodeDeploy (IN_PLACE, AllAtOnce).
 
 Instance userdata installs the CodeDeploy + CloudWatch agents, fetches secrets, and writes `/etc/wedding-website/env` with `DATABASE_URL` (including `sslmode=require`), `SESSION_SECRET`, and `PORT=8080`. The Go binary + systemd unit + lifecycle hook scripts ship via CodeDeploy out of `deploy/` in this repo (`bin/deploy-app.sh` builds, bundles, uploads to S3, and creates a deployment).

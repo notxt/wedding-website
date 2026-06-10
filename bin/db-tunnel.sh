@@ -69,15 +69,12 @@ get_export() {
 DB_ENDPOINT="$(get_export "${PROJECT_NAME}-data-DbEndpoint")"
 DB_PORT="$(get_export "${PROJECT_NAME}-data-DbPort")"
 DB_NAME="$(get_export "${PROJECT_NAME}-data-DbName")"
-# The secret ARN comes from RDS itself, not the stack export: RDS may recreate
-# the managed secret on rotation events, in which case the export lags reality.
-DB_SECRET_ARN="$(aws_q rds describe-db-instances \
-  --db-instance-identifier "$PROJECT_NAME" \
-  --query 'DBInstances[0].MasterUserSecret.SecretArn' --output text)"
+# Self-managed secret with a stable ARN; safe to read from the export.
+DB_SECRET_ARN="$(get_export "${PROJECT_NAME}-data-DbMasterSecretArn")"
 [[ -n "$DB_ENDPOINT" && "$DB_ENDPOINT" != "None" ]] \
   || { echo "ERROR: could not resolve ${PROJECT_NAME}-data-DbEndpoint export" >&2; exit 1; }
 [[ -n "$DB_SECRET_ARN" && "$DB_SECRET_ARN" != "None" ]] \
-  || { echo "ERROR: RDS instance ${PROJECT_NAME} has no MasterUserSecret" >&2; exit 1; }
+  || { echo "ERROR: could not resolve ${PROJECT_NAME}-data-DbMasterSecretArn export" >&2; exit 1; }
 [[ -n "$DB_PORT" && "$DB_PORT" != "None" ]] || DB_PORT=5432
 [[ -n "$DB_NAME" && "$DB_NAME" != "None" ]] || DB_NAME="$PROJECT_NAME"
 
