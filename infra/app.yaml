@@ -40,6 +40,10 @@ Parameters:
     Type: Number
     Default: 8080
 
+  DbMasterSecretArn:
+    Type: String
+    Description: ARN of the Secrets Manager secret holding the RDS master credentials. Passed as a parameter (rather than imported from the data stack) so the data stack can change the secret's identity without being blocked by an in-use export.
+
 Resources:
 
   # --- Security groups ---
@@ -235,7 +239,7 @@ Resources:
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
                 Resource:
-                  - Fn::ImportValue: !Sub "${DataStackName}-DbMasterSecretArn"
+                  - !Ref DbMasterSecretArn
                   - Fn::ImportValue: !Sub "${DataStackName}-AccessCodeSecretArn"
                   - Fn::ImportValue: !Sub "${DataStackName}-SessionSecretArn"
         - PolicyName: read-codedeploy-bundles
@@ -372,8 +376,7 @@ Resources:
                 /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 
                 echo "userdata done: $(date -u)"
-              - DbMasterSecretArn:
-                  Fn::ImportValue: !Sub "${DataStackName}-DbMasterSecretArn"
+              - DbMasterSecretArn: !Ref DbMasterSecretArn
                 AccessCodeSecretArn:
                   Fn::ImportValue: !Sub "${DataStackName}-AccessCodeSecretArn"
                 SessionSecretArn:

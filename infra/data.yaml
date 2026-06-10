@@ -116,7 +116,7 @@ Outputs:
       Name: !Sub "${ProjectName}-data-DbName"
 
   DbMasterSecretArn:
-    Description: ARN of the Secrets Manager secret holding the master credentials (RDS-managed).
+    Description: ARN of the Secrets Manager secret holding the master credentials. RDS-managed and auto-rotated every 7 days; consumers should re-read the ARN from RDS rather than caching this export, since RDS may recreate the secret (and change the ARN) on rotation events.
     Value: !GetAtt DbInstance.MasterUserSecret.SecretArn
     Export:
       Name: !Sub "${ProjectName}-data-DbMasterSecretArn"
