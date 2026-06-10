@@ -121,8 +121,44 @@ Resources:
 
   # --- ALB + target group + listeners ---
 
+  AlbAccessLogsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "${AWS::AccountId}-${AWS::Region}-${ProjectName}-alb-logs"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-logs
+            Status: Enabled
+            ExpirationInDays: 30
+
+  AlbAccessLogsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AlbAccessLogsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowELBLogDelivery
+            Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::797873946194:root  # us-west-2 ELB account
+            Action: s3:PutObject
+            Resource: !Sub "${AlbAccessLogsBucket.Arn}/AWSLogs/${AWS::AccountId}/*"
+
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DependsOn: AlbAccessLogsBucketPolicy
     Properties:
       Name: !Sub "${ProjectName}-alb"
       Scheme: internet-facing
@@ -134,6 +170,11 @@ Resources:
         Fn::Split:
           - ","
           - Fn::ImportValue: !Sub "${NetworkStackName}-PublicSubnetIds"
+      LoadBalancerAttributes:
+        - Key: access_logs.s3.enabled
+          Value: "true"
+        - Key: access_logs.s3.bucket
+          Value: !Ref AlbAccessLogsBucket
       Tags:
         - Key: Name
           Value: !Sub "${ProjectName}-alb"
