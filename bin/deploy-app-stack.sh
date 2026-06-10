@@ -24,6 +24,15 @@ fi
 HOSTED_ZONE_ID="${HOSTED_ZONE_FULL_ID##*/}"
 echo "  HostedZoneId: ${HOSTED_ZONE_ID}"
 
+echo "Looking up DbMasterSecretArn from RDS (authoritative source; the data-stack export can lag the actual secret if RDS rotates or recreates it)..."
+DB_MASTER_SECRET_ARN=$(aws rds describe-db-instances \
+  --region "$AWS_REGION" \
+  --db-instance-identifier "$PROJECT_NAME" \
+  --query 'DBInstances[0].MasterUserSecret.SecretArn' \
+  --output text)
+[ -n "$DB_MASTER_SECRET_ARN" ] && [ "$DB_MASTER_SECRET_ARN" != "None" ] || { echo "ERROR: RDS instance ${PROJECT_NAME} has no MasterUserSecret." >&2; exit 1; }
+echo "  DbMasterSecretArn: $DB_MASTER_SECRET_ARN"
+
 echo "Linting $TEMPLATE with cfn-lint..."
 cfn-lint "$TEMPLATE"
 
@@ -45,7 +54,8 @@ aws cloudformation deploy \
     "DataStackName=$DATA_STACK_NAME" \
     "BootstrapStackName=$BOOTSTRAP_STACK_NAME" \
     "DomainName=$DOMAIN_NAME" \
-    "HostedZoneId=$HOSTED_ZONE_ID"
+    "HostedZoneId=$HOSTED_ZONE_ID" \
+    "DbMasterSecretArn=$DB_MASTER_SECRET_ARN"
 
 echo
 echo "Stack outputs:"
