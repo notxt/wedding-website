@@ -44,6 +44,11 @@ Parameters:
     Type: String
     Description: ARN of the Secrets Manager secret holding the RDS master credentials. Passed as a parameter (rather than imported from the data stack) so the data stack can change the secret's identity without being blocked by an in-use export.
 
+  AlarmEmails:
+    Type: CommaDelimitedList
+    Default: "michaelkschoenfelder@gmail.com,adrien.warner@gmail.com,michaelandadrien4ever@gmail.com"
+    Description: Comma-separated list of email addresses that receive infrastructure alarms. Each subscriber must confirm via the AWS SNS confirmation email sent on the first deploy that introduces their address.
+
 Resources:
 
   # --- Security groups ---
@@ -442,6 +447,58 @@ Resources:
         DeploymentOption: WITHOUT_TRAFFIC_CONTROL
       AutoScalingGroups:
         - !Ref AutoScalingGroup
+
+  # --- Alarms ---
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Sub "${ProjectName} infra alarms"
+
+  AlarmSubscription1:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlarmTopic
+      Protocol: email
+      Endpoint: !Select [0, !Ref AlarmEmails]
+
+  AlarmSubscription2:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlarmTopic
+      Protocol: email
+      Endpoint: !Select [1, !Ref AlarmEmails]
+
+  AlarmSubscription3:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlarmTopic
+      Protocol: email
+      Endpoint: !Select [2, !Ref AlarmEmails]
+
+  UnhealthyTargetsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-app-unhealthy-targets"
+      AlarmDescription: ALB target group has fewer than 1 healthy host for 2 minutes. The site is serving 5xx to visitors.
+      Namespace: AWS/ApplicationELB
+      MetricName: HealthyHostCount
+      Statistic: Minimum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      Dimensions:
+        - Name: TargetGroup
+          Value: !GetAtt TargetGroup.TargetGroupFullName
+        - Name: LoadBalancer
+          Value: !GetAtt LoadBalancer.LoadBalancerFullName
+      AlarmActions:
+        - !Ref AlarmTopic
+      OKActions:
+        - !Ref AlarmTopic
 
 Outputs:
   AlbDnsName:
