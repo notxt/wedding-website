@@ -149,6 +149,21 @@ main svg {
   margin: 2rem auto;
 }
 
+main figure {
+  margin: 2rem 0;
+}
+
+main figure img {
+  margin: 0 auto 0.6rem;
+}
+
+main figcaption {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -188,7 +203,11 @@ main svg {
   height: 100%;
 }
 
-.siteHeader,
+.siteHeader {
+  position: relative;
+  z-index: 2;
+}
+
 main {
   position: relative;
   z-index: 1;
@@ -248,18 +267,46 @@ main {
   pointer-events: none;
 }
 
-.siteNav-top a {
+.siteNav-top a,
+.siteNav-top .siteNav-dropdown {
   pointer-events: auto;
 }
 
-.siteNav-sub {
+.siteNav-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.siteNav-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: baseline;
-  gap: 0.4rem 1.25rem;
-  padding: 0.55rem clamp(16px, 4vw, 36px) 0.7rem;
-  border-top: 1px solid var(--rule);
+  flex-direction: column;
+  min-width: 14rem;
+  padding: 0.5rem 0;
+  background: #000;
+  border: 1px solid var(--rule);
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.75);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.siteNav-dropdown:hover .siteNav-menu,
+.siteNav-dropdown:focus-within .siteNav-menu {
+  opacity: 1;
+  visibility: visible;
+}
+
+.siteNav-menu a {
+  padding: 0.55rem 1.25rem;
+  font-size: clamp(13px, 1.1vw, 16px);
+  text-align: center;
+  white-space: nowrap;
 }
 
 .siteNav a {
@@ -275,13 +322,6 @@ main {
 .siteNav-top a {
   font-size: clamp(13px, 1.1vw, 16px);
   letter-spacing: normal;
-}
-
-.siteNav-sub a {
-  font-size: 0.72rem;
-  letter-spacing: normal;
-  color: var(--ink-muted);
-  opacity: 0.9;
 }
 
 .siteNav a:hover,
@@ -363,25 +403,38 @@ main {
     display: flex;
   }
 
-  .siteNav-sub {
-    display: none;
+  .siteNav-dropdown {
+    display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0;
-    border-top: 0;
-    padding-top: 0;
+    width: 100%;
   }
 
-  .nav-toggle:checked ~ .siteNav-sub {
-    display: flex;
+  .siteNav-menu {
+    position: static;
+    transform: none;
+    min-width: 0;
+    width: 100%;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    opacity: 1;
+    visibility: visible;
+    align-items: center;
   }
 
   .siteNav-top a,
-  .siteNav-sub a {
+  .siteNav-menu a {
     display: flex;
     align-items: center;
     min-height: 44px;
     padding: 0.5rem 0;
+  }
+
+  .siteNav-menu a {
+    font-size: 0.85rem;
+    opacity: 0.7;
   }
 }
 
