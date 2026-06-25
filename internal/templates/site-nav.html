@@ -12,22 +12,18 @@
 </div>
 <div class="siteNav-top">
 <a href="/rsvp"{{ if hasPrefix .Active "/rsvp" }} aria-current="page"{{ end }}>RSVP</a>
-<a href="/information"{{ if or (hasPrefix .Active "/information") (eq .Active "/faqs") }} aria-current="page"{{ end }}>Information</a>
-<a href="/contact"{{ if hasPrefix .Active "/contact" }} aria-current="page"{{ end }}>Contact</a>
-</div>
-{{ if or (hasPrefix .Active "/information") (eq .Active "/faqs") }}
-<div class="siteNav-sub">
 <a href="/faqs"{{ if eq .Active "/faqs" }} aria-current="page"{{ end }}>FAQs</a>
-<a href="/information/itinerary"{{ if eq .Active "/information/itinerary" }} aria-current="page"{{ end }}>Itinerary</a>
-<a href="/information/travel"{{ if eq .Active "/information/travel" }} aria-current="page"{{ end }}>Travel</a>
-<a href="/information/things-to-do"{{ if eq .Active "/information/things-to-do" }} aria-current="page"{{ end }}>Things to Do</a>
+<div class="siteNav-dropdown">
+<a href="/information"{{ if hasPrefix .Active "/information" }} aria-current="page"{{ end }}>Information</a>
+<div class="siteNav-menu">
+<a href="/information/itinerary"{{ if eq .Active "/information/itinerary" }} aria-current="page"{{ end }}>Wedding itinerary</a>
+<a href="/information/travel"{{ if eq .Active "/information/travel" }} aria-current="page"{{ end }}>Travel + accommodations</a>
+<a href="/information/things-to-do"{{ if eq .Active "/information/things-to-do" }} aria-current="page"{{ end }}>Things to do</a>
 </div>
-{{ else if hasPrefix .Active "/contact" }}
-<div class="siteNav-sub">
-<a href="/contact/about-us"{{ if eq .Active "/contact/about-us" }} aria-current="page"{{ end }}>About Us</a>
+</div>
+<a href="/contact/about-us"{{ if eq .Active "/contact/about-us" }} aria-current="page"{{ end }}>About us</a>
 <a href="/contact/registry"{{ if eq .Active "/contact/registry" }} aria-current="page"{{ end }}>Registry</a>
-<a href="/contact/get-in-touch"{{ if eq .Active "/contact/get-in-touch" }} aria-current="page"{{ end }}>Get in Touch</a>
+<a href="/contact/get-in-touch"{{ if eq .Active "/contact/get-in-touch" }} aria-current="page"{{ end }}>Contact</a>
 </div>
-{{ end }}
 </nav>
 {{ end }}
