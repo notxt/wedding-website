@@ -337,6 +337,14 @@
   opacity: 0.62;
   line-height: 1.55;
 }
+.heroE-sched-address {
+  font-style: italic;
+  font-size: clamp(10px, 0.82vw, 12px);
+  letter-spacing: 0.06em;
+  opacity: 0.55;
+  line-height: 1.45;
+  margin-top: 4px;
+}
 
 .heroE-note {
   position: absolute;
