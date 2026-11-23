@@ -78,6 +78,7 @@ func main() {
 	mux.HandleFunc("GET /faqs", handlers.FAQs(tmpls))
 	mux.HandleFunc("GET /information", handlers.Page(tmpls, "information.html"))
 	mux.HandleFunc("GET /information/itinerary", handlers.Page(tmpls, "information-itinerary.html"))
+	mux.HandleFunc("GET /information/dress-code", handlers.Page(tmpls, "information-dress-code.html"))
 	mux.HandleFunc("GET /information/travel", handlers.Page(tmpls, "information-travel.html"))
 	mux.HandleFunc("GET /information/things-to-do", handlers.Page(tmpls, "information-things-to-do.html"))
 	mux.HandleFunc("GET /contact/about-us", handlers.Page(tmpls, "contact-about-us.html"))

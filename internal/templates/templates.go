@@ -31,6 +31,7 @@ func Load() (*Set, error) {
 		"faqs.html",
 		"information.html",
 		"information-itinerary.html",
+		"information-dress-code.html",
 		"information-travel.html",
 		"information-things-to-do.html",
 		"contact-about-us.html",
