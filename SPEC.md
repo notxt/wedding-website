@@ -92,6 +92,9 @@ CREATE TABLE IF NOT EXISTS rsvps (
   plus_one_attending   BOOLEAN     NOT NULL DEFAULT false,
   plus_one_name        TEXT,
   plus_one_meal_choice TEXT,                               -- 'chicken' | 'vegetarian'
+  plus_one_dairy_allergy  BOOLEAN  NOT NULL DEFAULT false,
+  plus_one_gluten_allergy BOOLEAN  NOT NULL DEFAULT false,
+  anything_else        TEXT,                               -- free-form note from the guest
   remote_addr          TEXT                                -- audit / dedupe hint
 );
 ```
@@ -141,13 +144,18 @@ wedding-website/
 │   └── templates/              # *.html, embedded
 ├── migrations/
 │   ├── 001_init.sql
-│   └── 002_guests_and_rsvp_link.sql
+│   ├── 002_guests_and_rsvp_link.sql
+│   └── 003_rsvp_plus_one_allergies_and_notes.sql
 └── static/
     ├── css/
     └── img/
 ```
 
 ## Production deployment
+
+> **Torn down 2026-11-23.** None of the stacks below exist any more; this section describes
+> production as it ran from 2026-05 to 2026-11. The final data survives as RDS snapshot
+> `wedding-final-2026-11-23`. See `infra/README.md` for the teardown record and how to redeploy.
 
 Four CFN stacks in `infra/`, deployed in this order (see `infra/README.md`):
 

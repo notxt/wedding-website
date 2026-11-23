@@ -2,6 +2,15 @@
 
 Durable process notes for working on this repo. Read this first after a context reset.
 
+## Status: archived (2026-11-23)
+
+The wedding took place on 2026-09-25. The AWS infrastructure was **torn down on 2026-11-23** and the site is offline. This repo is kept as a record.
+
+- `main` is the final code. The `last-deployed` tag (`4112822`, task 029) marks what was live for the wedding; task 030 was merged afterwards and never deployed.
+- No `wedding-*` CloudFormation stacks, buckets, secrets, or hosted zone remain. The only thing left in AWS is the RDS snapshot `wedding-final-2026-11-23` (final guest list + RSVPs).
+- The domain `michaelandadrien4ever.com` had auto-renew disabled and expires 2026-12-29.
+- Everything below describes the project as it ran. Sections about production (deploys, `bin/db-tunnel.sh`, the master secret) are historical until the stacks are redeployed — see "Bringing it back" in `infra/README.md`.
+
 ## Project
 
 Wedding website for Michael Schoenfelder & Adrien Warner. Wedding is **Friday, September 25, 2026** in Santa Fe, NM (ceremony at the New Mexico Museum of Art, reception at Meow Wolf).
