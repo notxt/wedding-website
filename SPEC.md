@@ -28,6 +28,7 @@ Architecture and design reference for the wedding website. Process and conventio
 | GET    | `/faqs`                       | public    | FAQs                                                |
 | GET    | `/information`                | public    | Information index                                   |
 | GET    | `/information/itinerary`      | public    | Wedding itinerary                                   |
+| GET    | `/information/dress-code`     | public    | Dress code                                          |
 | GET    | `/information/travel`         | public    | Travel + accommodations                             |
 | GET    | `/information/things-to-do`   | public    | Things to do in Santa Fe                            |
 | GET    | `/contact`                    | public    | Contact index                                       |
